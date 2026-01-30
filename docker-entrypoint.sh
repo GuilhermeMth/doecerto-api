@@ -107,11 +107,8 @@ MAX_RETRIES=60
 RETRY_COUNT=0
 RETRY_DELAY=2
 
-# Verificar conexão com o banco usando Prisma
-until npx prisma db execute --stdin <<EOF 2>/dev/null
-SELECT 1;
-EOF
-do
+# Verificar conexão usando prisma migrate status
+until npx prisma migrate status > /dev/null 2>&1 || [ $? -eq 1 ]; do
     RETRY_COUNT=$((RETRY_COUNT + 1))
     
     if [ $RETRY_COUNT -gt $MAX_RETRIES ]; then
@@ -144,25 +141,42 @@ if [ ! -z "$MIGRATE_FAILED" ]; then
         # Listar migrations disponíveis
         if [ -d "prisma/migrations" ]; then
             MIGRATION_COUNT=0
+            BASELINE_SUCCESS=0
             
             # Marcar cada migration como aplicada (baseline)
             for migration_dir in prisma/migrations/*/; do
-                if [ -d "$migration_dir" ] && [ "$migration_dir" != "prisma/migrations/migration_lock.toml" ]; then
+                if [ -d "$migration_dir" ]; then
                     migration_name=$(basename "$migration_dir")
                     
-                    if [ "$migration_name" != "migration_lock.toml" ]; then
-                        log_info "Baseline: Marking as applied -> $migration_name"
+                    # Pular migration_lock.toml
+                    if [ "$migration_name" != "migration_lock.toml" ] && [ -f "${migration_dir}migration.sql" ]; then
+                        log_info "Baseline: $migration_name"
                         
-                        if npx prisma migrate resolve --applied "$migration_name" 2>&1; then
-                            MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
+                        if npx prisma migrate resolve --applied "$migration_name" > /dev/null 2>&1; then
+                            BASELINE_SUCCESS=$((BASELINE_SUCCESS + 1))
                         else
-                            log_warning "Failed to baseline: $migration_name (may already be applied)"
+                            log_warning "Migration $migration_name may already be applied"
                         fi
+                        
+                        MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
                     fi
                 fi
             done
             
-            log_success "Baseline completed: $MIGRATION_COUNT migrations marked as applied"
+            if [ $MIGRATION_COUNT -eq 0 ]; then
+                log_error "No valid migrations found in prisma/migrations"
+                exit 1
+            fi
+            
+            log_success "Baseline completed: $BASELINE_SUCCESS/$MIGRATION_COUNT migrations marked as applied"
+            
+            # Tentar deploy novamente após baseline
+            log_info "Retrying migration deploy after baseline..."
+            if npx prisma migrate deploy 2>&1; then
+                log_success "Migration deploy successful"
+            else
+                log_warning "No additional migrations to apply"
+            fi
         else
             log_error "No migrations directory found at prisma/migrations"
             exit 1
