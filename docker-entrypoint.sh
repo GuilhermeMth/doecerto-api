@@ -191,6 +191,11 @@ else
     log_success "Database migrations completed successfully"
 fi
 
+# Gerar Prisma Client
+log_info "Generating Prisma Client..."
+npx prisma generate
+log_success "Prisma Client generated"
+
 # ===============================================
 # 6️⃣ Seed do Banco (Opcional)
 # ===============================================
