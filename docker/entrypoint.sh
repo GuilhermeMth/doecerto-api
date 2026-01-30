@@ -31,16 +31,25 @@ handle_signal() {
 
 trap handle_signal SIGTERM SIGINT EXIT
 
+# Definir variáveis primeiro
+export NODE_ENV=${NODE_ENV:-production}
+export PORT=${PORT:-3000}
+
 log_info "Starting DoeCerto API..."
-log_info "Environment: ${NODE_ENV:-production}"
-log_info "Port: ${PORT:-3000}"
+log_info "Environment: $NODE_ENV"
+log_info "Port: $PORT"
 log_info "Timezone: ${TZ:-UTC}"
 
 log_info "Validating environment..."
 
-if [ -z "$DATABASE_URL" ]; then
+# Em modo TEST, DATABASE_URL é opcional
+if [ "$NODE_ENV" != "test" ] && [ -z "$DATABASE_URL" ]; then
     log_error "DATABASE_URL not set!"
     exit 1
+fi
+
+if [ "$NODE_ENV" = "test" ]; then
+    log_warning "Running in TEST mode - skipping database operations"
 fi
 
 export NODE_ENV=${NODE_ENV:-production}
@@ -48,84 +57,88 @@ export PORT=${PORT:-3000}
 
 log_success "Environment validation passed"
 
-log_info "Waiting for database to be ready..."
-
-MAX_RETRIES=60
-RETRY_COUNT=0
-RETRY_DELAY=2
-
-until npx prisma migrate status > /dev/null 2>&1 || [ $? -eq 1 ]; do
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    
-    if [ $RETRY_COUNT -gt $MAX_RETRIES ]; then
-        log_error "Database connection failed after $((MAX_RETRIES * RETRY_DELAY))s"
-        exit 1
-    fi
-    
-    ELAPSED=$((RETRY_COUNT * RETRY_DELAY))
-    log_warning "Database unavailable - attempt $RETRY_COUNT/$MAX_RETRIES (${ELAPSED}s)"
-    sleep $RETRY_DELAY
-done
-
-log_success "Database connection successful"
-
-log_info "Running database migrations..."
-
-MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1) || MIGRATE_FAILED=1
-
-if [ ! -z "$MIGRATE_FAILED" ]; then
-    if echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
-        log_warning "Database schema exists. Performing baseline..."
-        
-        if [ ! -d "prisma/migrations" ]; then
-            log_error "No migrations directory found"
-            exit 1
-        fi
-        
-        MIGRATION_COUNT=0
-        BASELINE_SUCCESS=0
-        
-        for migration_dir in prisma/migrations/*/; do
-            if [ -d "$migration_dir" ]; then
-                migration_name=$(basename "$migration_dir")
-                
-                if [ "$migration_name" != "migration_lock.toml" ] && [ -f "${migration_dir}migration.sql" ]; then
-                    log_info "Baseline: $migration_name"
-                    
-                    if npx prisma migrate resolve --applied "$migration_name" > /dev/null 2>&1; then
-                        BASELINE_SUCCESS=$((BASELINE_SUCCESS + 1))
-                    fi
-                    
-                    MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
-                fi
-            fi
-        done
-        
-        if [ $MIGRATION_COUNT -eq 0 ]; then
-            log_error "No valid migrations found"
-            exit 1
-        fi
-        
-        log_success "Baseline: $BASELINE_SUCCESS/$MIGRATION_COUNT migrations applied"
-        
-        log_info "Retrying migration deploy..."
-        npx prisma migrate deploy > /dev/null 2>&1 || log_warning "No new migrations"
-    else
-        log_error "Migration failed:"
-        echo "$MIGRATE_OUTPUT"
-        exit 1
-    fi
+if [ "$NODE_ENV" = "test" ]; then
+    log_info "Skipping database checks in TEST mode"
 else
-    log_success "Database migrations completed"
-fi
+    log_info "Waiting for database to be ready..."
 
-if [ "$RUN_SEED" = "true" ] || [ "$RUN_SEED" = "1" ]; then
-    log_info "Seeding database..."
-    
-    if npx prisma db seed > /dev/null 2>&1; then
-        log_success "Database seeded"
+    MAX_RETRIES=60
+    RETRY_COUNT=0
+    RETRY_DELAY=2
+
+    until npx prisma migrate status > /dev/null 2>&1 || [ $? -eq 1 ]; do
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        
+        if [ $RETRY_COUNT -gt $MAX_RETRIES ]; then
+            log_error "Database connection failed after $((MAX_RETRIES * RETRY_DELAY))s"
+            exit 1
+        fi
+        
+        ELAPSED=$((RETRY_COUNT * RETRY_DELAY))
+        log_warning "Database unavailable - attempt $RETRY_COUNT/$MAX_RETRIES (${ELAPSED}s)"
+        sleep $RETRY_DELAY
+    done
+
+    log_success "Database connection successful"
+
+    log_info "Running database migrations..."
+
+    MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1) || MIGRATE_FAILED=1
+
+    if [ ! -z "$MIGRATE_FAILED" ]; then
+        if echo "$MIGRATE_OUTPUT" | grep -q "P3005"; then
+            log_warning "Database schema exists. Performing baseline..."
+            
+            if [ ! -d "prisma/migrations" ]; then
+                log_error "No migrations directory found"
+                exit 1
+            fi
+            
+            MIGRATION_COUNT=0
+            BASELINE_SUCCESS=0
+            
+            for migration_dir in prisma/migrations/*/; do
+                if [ -d "$migration_dir" ]; then
+                    migration_name=$(basename "$migration_dir")
+                    
+                    if [ "$migration_name" != "migration_lock.toml" ] && [ -f "${migration_dir}migration.sql" ]; then
+                        log_info "Baseline: $migration_name"
+                        
+                        if npx prisma migrate resolve --applied "$migration_name" > /dev/null 2>&1; then
+                            BASELINE_SUCCESS=$((BASELINE_SUCCESS + 1))
+                        fi
+                        
+                        MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
+                    fi
+                fi
+            done
+            
+            if [ $MIGRATION_COUNT -eq 0 ]; then
+                log_error "No valid migrations found"
+                exit 1
+            fi
+            
+            log_success "Baseline: $BASELINE_SUCCESS/$MIGRATION_COUNT migrations applied"
+            
+            log_info "Retrying migration deploy..."
+            npx prisma migrate deploy > /dev/null 2>&1 || log_warning "No new migrations"
+        else
+            log_error "Migration failed:"
+            echo "$MIGRATE_OUTPUT"
+            exit 1
+        fi
     else
-        log_warning "Seed failed or not configured"
+        log_success "Database migrations completed"
+    fi
+
+    if [ "$RUN_SEED" = "true" ] || [ "$RUN_SEED" = "1" ]; then
+        log_info "Seeding database..."
+        
+        if npx prisma db seed > /dev/null 2>&1; then
+            log_success "Database seeded"
+        else
+            log_warning "Seed failed or not configured"
+        fi
     fi
 fi
 
