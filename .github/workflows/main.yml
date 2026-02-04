@@ -3,7 +3,7 @@ name: Build, Test and Push Docker Image
 on:
   push:
     branches:
-      - main
+      - sistemas-distribuidos
       - develop
     tags:
       - 'v*.*.*'
@@ -13,12 +13,42 @@ env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/doecerto-api
 
 jobs:
-  build-and-push:
+  test-and-build:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: doecerto
+          MYSQL_USER: doecerto
+          MYSQL_PASSWORD: doecerto
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u doecerto -pdoecerto"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --passWithNoTests
+        
+      - name: Build application
+        run: npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -40,49 +70,47 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha,prefix={{branch}}-
+            type=raw,value=sistemas-distribuidos
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build Docker image for testing
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          push: false
           load: true
-          tags: test-image:latest
+          tags: doecerto-api:test
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
-      - name: Run health check tests
+      - name: Smoke Tests - Container Health Check
         run: |
-          docker run -d \
-            -p 3001:3000 \
+          docker run -d -p 3001:3000 \
+            -e NODE_ENV=production \
+            -e DATABASE_URL="mysql://doecerto:doecerto@host.docker.internal:3306/doecerto" \
+            -e JWT_SECRET=test-secret \
+            -e COOKIE_SECRET=test-cookie \
             --name test-container \
-            -e NODE_ENV=test \
-            -e DATABASE_URL="mysql://test:test@localhost:3306/test" \
-            -e JWT_SECRET=test-secret-key-12345 \
-            -e COOKIE_SECRET=test-cookie-secret-12345 \
-            test-image:latest
+            doecerto-api:test
           
-          echo "Waiting for application startup..."
-          sleep 5
+          echo "Waiting for app to start..."
+          sleep 10
           
-          LOGS=$(docker logs test-container 2>&1)
-          echo "$LOGS"
+          echo "Testing health endpoint..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" http://localhost:3001/health || true)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           
-          if echo "$LOGS" | grep -q "Nest application successfully started"; then
-            echo "✓ Application started successfully!"
-            docker stop test-container
-            exit 0
-          elif echo "$LOGS" | grep -q "DoeCerto API is starting"; then
-            echo "✓ Application container started (Nest startup initiated)!"
-            docker stop test-container
+          docker logs test-container
+          docker stop test-container
+          
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
+            echo "✓ Container is running and responding"
             exit 0
           else
-            echo "✗ Application failed to start!"
-            docker stop test-container
+            echo "✗ Health check failed with HTTP $HTTP_CODE"
             exit 1
           fi
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image to registry
         uses: docker/build-push-action@v5
         with:
           context: .
