@@ -49,6 +49,8 @@ export class OngsService {
         data: {
           cnpj,
           userId: user.id,
+          verificationStatus: 'verified',
+          verifiedAt: new Date(),
         },
       });
 
