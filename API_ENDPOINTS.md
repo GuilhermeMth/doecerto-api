@@ -224,6 +224,50 @@
 - **Público**: Para que doadores vejam detalhes
 - **Params**: `id: number`
 
+### GET `/ongs/nearby` �
+- **Descrição**: Listar ONGs verificadas dentro de 10km da localização do usuário logado
+- **Autorização**: Autenticado (doador, ONG ou admin)
+- **Pré-requisito**: Usuário deve ter um `address` com `latitude` e `longitude` configurados
+- **Response**: 
+  ```json
+  {
+    "data": [
+      {
+        "id": 1,
+        "userId": 1,
+        "name": "ONG Example",
+        "avatarUrl": "...",
+        "bannerUrl": "...",
+        "bio": "...",
+        "averageRating": 4.5,
+        "numberOfRatings": 10,
+        "distance": 2.35,
+        "address": {
+          "street": "Rua A",
+          "number": "123",
+          "neighborhood": "Centro",
+          "city": "São Paulo",
+          "state": "SP",
+          "zipCode": "01310-100"
+        }
+      }
+    ],
+    "pagination": {
+      "skip": 0,
+      "take": 20,
+      "total": 5,
+      "pages": 1
+    }
+  }
+  ```
+- **Exemplo de Requisição**:
+  ```
+  GET /ongs/nearby
+  Cookie: seu_jwt_token
+  ```
+- **Erro**: `400 Bad Request` se o usuário não tiver um endereço com localização
+- **Nota**: Retorna apenas ONGs com status `verified` e endereço com latitude/longitude. Resultado ordenado por distância crescente
+
 ### PATCH `/ongs/me` 🏢
 - **Descrição**: Atualizar próprio perfil da ONG
 - **Autorização**: Apenas ONGs
