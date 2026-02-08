@@ -1,3 +1,43 @@
+## 🏦 Contas Bancárias de ONG (`/ongs/bank-account`)
+
+### GET `/ongs/bank-account/:ongId/public` 🔓
+- **Descrição**: Retorna dados seguros da(s) conta(s) bancária(s) de uma ONG para exibição em tela de transação
+- **Autorização**: Público
+- **Params**: `ongId: number`
+- **Response**:
+  ```json
+  [
+    {
+      "bankName": "Banco do Brasil",
+      "agencyNumber": "1234",
+      "accountNumber": "56789-0",
+      "accountType": "corrente"
+    }
+  ]
+  ```
+
+### POST `/ongs/bank-account/me` 🏢
+- **Descrição**: Cria ou atualiza a conta bancária da ONG autenticada
+- **Autorização**: Apenas ONGs
+- **Body**: `CreateOngsBankAccountDto`
+- **Response**: Dados da conta bancária criada/atualizada
+
+### GET `/ongs/bank-account/me` 🏢
+- **Descrição**: Lista todas as contas bancárias da ONG autenticada
+- **Autorização**: Apenas ONGs
+- **Response**: Array de contas bancárias
+
+### PATCH `/ongs/bank-account/me` 🏢
+- **Descrição**: Atualiza a conta bancária da ONG autenticada
+- **Autorização**: Apenas ONGs
+- **Body**: `UpdateOngsBankAccountDto`
+- **Response**: Conta bancária atualizada
+
+### DELETE `/ongs/bank-account/me` 🏢
+- **Descrição**: Remove a conta bancária da ONG autenticada
+- **Autorização**: Apenas ONGs
+- **Response**: Conta bancária removida
+
 # 🔐 DoeCerto API - Documentação Completa de Endpoints
 
 **Versão**: 1.2.0  
@@ -331,8 +371,9 @@
 
 ## 👥 ONG Profiles (`/ongs`)
 
+
 ### POST `/ongs/me/profile` 🏢
-- **Descrição**: Criar ou atualizar próprio perfil de ONG
+- **Descrição**: Criar ou atualizar o perfil da ONG autenticada. Agora também permite criar/atualizar a conta bancária da ONG no mesmo request!
 - **Autorização**: Apenas ONGs
 - **Content-Type**: `multipart/form-data` (suporta upload de avatar)
 - **Body**:
@@ -342,22 +383,47 @@
     "contactNumber": "string (máx 20 caracteres)",
     "websiteUrl": "string (máx 255 caracteres)",
     "address": "string (máx 255 caracteres)",
+    "categoryIds": [1,2,3],
+    "bankAccount": {
+      "bankName": "Banco do Brasil",
+      "agencyNumber": "1234",
+      "accountNumber": "56789-0",
+      "accountType": "corrente"
+    },
     "file": "image file (opcional)"
   }
   ```
-- **Response**: Perfil completo com avatar processado
+- **Response**: Perfil completo da ONG, incluindo avatar processado e, se enviado, dados bancários atualizados.
 - **Nota**: ID da ONG vem do JWT (user.id), não da URL
 - **Processamento de Imagem**:
   - Recorte automático para 1:1
   - Redimensionamento para 512x512px
   - Compressão JPEG
   - Salvo em `/uploads/profiles/`
+- **Novidade**: Se o campo `bankAccount` for enviado, a conta bancária da ONG será criada ou atualizada junto com o perfil, de forma atômica.
+
 
 ### GET `/ongs/:ongId/profile` 🔓
-- **Descrição**: Visualizar perfil de ONG
+- **Descrição**: Visualizar perfil público de uma ONG. Agora também retorna os dados bancários públicos da ONG!
 - **Autorização**: Público (qualquer pessoa pode ver)
 - **Params**: `ongId: number`
-- **Response**: Perfil da ONG com avatar e dados públicos
+- **Response**: Perfil da ONG com avatar, dados públicos e array `bankAccounts` com as contas bancárias públicas:
+  ```json
+  {
+    "id": 1,
+    "name": "ONG Esperança",
+    "avatarUrl": "/uploads/profiles/ong1.jpg",
+    ...,
+    "bankAccounts": [
+      {
+        "bankName": "Banco do Brasil",
+        "agencyNumber": "1234",
+        "accountNumber": "56789-0",
+        "accountType": "corrente"
+      }
+    ]
+  }
+  ```
 
 ---
 

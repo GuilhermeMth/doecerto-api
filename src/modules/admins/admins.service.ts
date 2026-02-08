@@ -7,10 +7,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { excludePassword } from 'src/common/utils/exclude-password.util';
 import { CreateAdminDto } from './dto/create-admin.dto';
+import { MetricsService } from 'src/modules/metrics/metrics.service';
 
 @Injectable()
 export class AdminsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly metricsService: MetricsService,
+  ) {}
 
   // Criar admin
   async createAdmin(data: CreateAdminDto) {
@@ -33,6 +37,17 @@ export class AdminsService {
         userId: user.id,
       },
     });
+    
+    return excludePassword(admin);
+  }
+
+  async findAdminById(adminId: number) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { userId: adminId },
+      include: { user: true },
+    });
+    
+    if (!admin) throw new NotFoundException('Admin not found');
     
     return excludePassword(admin);
   }
@@ -131,48 +146,160 @@ export class AdminsService {
   async pendentOngs() {
     const ongs = await this.prisma.ong.findMany({
       where: { verificationStatus: 'pending' },
-      include: { 
-        user: true,
+      select: {
+        userId: true,
+        cnpj: true,
+        verificationStatus: true,
+        verifiedAt: true,
+        rejectionReason: true,
+        profile: {
+          select: {
+            contactNumber: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        },
         verifiedBy: {
-          include: { user: true }
+          select: {
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
         }
       },
-      orderBy: { user: { createdAt: 'desc' } }, // Mais recentes primeiro
+      orderBy: { user: { createdAt: 'desc' } },
     });
-    
-    return ongs;
+    // Retorna contactNumber no objeto ONG, não dentro de profile
+    return ongs.map(ong => ({
+      userId: ong.userId,
+      cnpj: ong.cnpj,
+      verificationStatus: ong.verificationStatus,
+      verifiedAt: ong.verifiedAt,
+      rejectionReason: ong.rejectionReason,
+      contactNumber: ong.profile?.contactNumber || null,
+      name: ong.user?.name || null,
+      email: ong.user?.email || null,
+      verifiedBy: ong.verifiedBy ? {
+        name: ong.verifiedBy.user?.name || null,
+        email: ong.verifiedBy.user?.email || null,
+      } : null,
+    }));
   }
 
   // ONGs verificadas/aprovadas
   async verifiedOngs() {
     const ongs = await this.prisma.ong.findMany({
       where: { verificationStatus: 'verified' },
-      include: { 
-        user: true,
+      select: {
+        userId: true,
+        cnpj: true,
+        verificationStatus: true,
+        verifiedAt: true,
+        rejectionReason: true,
+        profile: {
+          select: {
+            contactNumber: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        },
         verifiedBy: {
-          include: { user: true }
+          select: {
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
         }
       },
-      orderBy: { verifiedAt: 'desc' }, // Mais recentemente verificadas primeiro
+      orderBy: { verifiedAt: 'desc' },
     });
-    
-    return ongs;
+    return ongs.map(ong => ({
+      userId: ong.userId,
+      cnpj: ong.cnpj,
+      verificationStatus: ong.verificationStatus,
+      verifiedAt: ong.verifiedAt,
+      rejectionReason: ong.rejectionReason,
+      contactNumber: ong.profile?.contactNumber || null,
+      name: ong.user?.name || null,
+      email: ong.user?.email || null,
+      verifiedBy: ong.verifiedBy ? {
+        name: ong.verifiedBy.user?.name || null,
+        email: ong.verifiedBy.user?.email || null,
+      } : null,
+    }));
   }
 
   // ONGs rejeitadas
   async rejectedOngs() {
     const ongs = await this.prisma.ong.findMany({
       where: { verificationStatus: 'rejected' },
-      include: { 
-        user: true,
+      select: {
+        userId: true,
+        cnpj: true,
+        verificationStatus: true,
+        verifiedAt: true,
+        rejectionReason: true,
+        profile: {
+          select: {
+            contactNumber: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        },
         verifiedBy: {
-          include: { user: true }
+          select: {
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
         }
       },
-      orderBy: { verifiedAt: 'desc' }, // Mais recentemente rejeitadas primeiro
+      orderBy: { verifiedAt: 'desc' },
     });
-    
-    return ongs;
+    return ongs.map(ong => ({
+      userId: ong.userId,
+      cnpj: ong.cnpj,
+      verificationStatus: ong.verificationStatus,
+      verifiedAt: ong.verifiedAt,
+      rejectionReason: ong.rejectionReason,
+      contactNumber: ong.profile?.contactNumber || null,
+      name: ong.user?.name || null,
+      email: ong.user?.email || null,
+      verifiedBy: ong.verifiedBy ? {
+        name: ong.verifiedBy.user?.name || null,
+        email: ong.verifiedBy.user?.email || null,
+      } : null,
+    }));
   }
 
   // Estatísticas de um admin (BONUS)
@@ -206,5 +333,10 @@ export class AdminsService {
       approved,
       rejected,
     };
+  }
+
+  // Obter métricas do dashboard
+  async getMetrics() {
+    return this.metricsService.getMetrics();
   }
 }
