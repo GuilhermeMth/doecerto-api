@@ -5,6 +5,14 @@ import { unlink } from 'fs/promises';
 @Injectable()
 export class ImageProcessingService {
   /**
+   * Converte caminho do servidor para caminho público padronizado
+   */
+  private getPublicPath(filePath: string): string {
+    const uploadsIndex = filePath.indexOf('uploads/');
+    return uploadsIndex >= 0 ? '/' + filePath.slice(uploadsIndex) : '/' + filePath.replace(/^\.\/?/, '');
+  }
+
+  /**
    * Processa imagem para avatar: corta para 1:1, redimensiona e comprime
    */
   async processAvatarImage(filePath: string, size: number = 512): Promise<string> {
@@ -27,7 +35,7 @@ export class ImageProcessingService {
 
       await unlink(filePath);
 
-      return outputPath;
+      return this.getPublicPath(outputPath);
     } catch (error) {
       await unlink(filePath).catch(() => {});
       throw new Error(`Failed to process image: ${error.message}`);
@@ -57,7 +65,7 @@ export class ImageProcessingService {
 
       await unlink(filePath);
 
-      return outputPath;
+      return this.getPublicPath(outputPath);
     } catch (error) {
       await unlink(filePath).catch(() => {});
       throw new Error(`Failed to process banner image: ${error.message}`);
@@ -116,7 +124,7 @@ export class ImageProcessingService {
       // Remove arquivo original
       await unlink(filePath);
 
-      return outputPath;
+      return this.getPublicPath(outputPath);
     } catch (error) {
       // Se falhar, remove o arquivo original
       await unlink(filePath).catch(() => {});
