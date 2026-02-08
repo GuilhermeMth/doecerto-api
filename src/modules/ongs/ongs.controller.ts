@@ -42,6 +42,13 @@ export class OngsController {
     return this.ongsService.findAll(skip, take);
   }
 
+  // Authenticated - Find nearby ONGs within 10km radius using user's address
+  @Get('nearby')
+  @UseGuards(JwtAuthGuard)
+  async getNearby(@CurrentUser() user: User) {
+    return this.ongsService.getNearbyWithUserAddress(user.id);
+  }
+
   // Public - View ONG profile (for donors to see details)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
