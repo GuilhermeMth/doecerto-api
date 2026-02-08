@@ -7,10 +7,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { excludePassword } from 'src/common/utils/exclude-password.util';
 import { CreateAdminDto } from './dto/create-admin.dto';
+import { MetricsService } from 'src/modules/metrics/metrics.service';
 
 @Injectable()
 export class AdminsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly metricsService: MetricsService,
+  ) {}
 
   // Criar admin
   async createAdmin(data: CreateAdminDto) {
@@ -329,5 +333,10 @@ export class AdminsService {
       approved,
       rejected,
     };
+  }
+
+  // Obter métricas do dashboard
+  async getMetrics() {
+    return this.metricsService.getMetrics();
   }
 }

@@ -102,4 +102,11 @@ export class AdminsController {
   ) {
     return this.adminsService.rejectOng(ongId, user.id, reason);
   }
+
+  // Obter métricas do dashboard
+  @Get('metrics')
+  @HttpCode(HttpStatus.OK)
+  getMetrics() {
+    return this.adminsService.getMetrics();
+  }
 }
