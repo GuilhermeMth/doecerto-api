@@ -5,7 +5,14 @@ import { CatalogSectionDto, NgoItemDto } from './dto/catalog-response.dto';
 import { sortCatalogItems } from 'src/common/utils/sorting.util';
 
 // Tipo interno que inclui matchCount para ordenação
-type NgoItemWithMatch = NgoItemDto & { matchCount: number };
+type NgoItemWithMatch = NgoItemDto & { 
+  matchCount: number; 
+  distance?: number;
+  averageRating?: number;
+  numberOfRatings?: number;
+  donationCount?: number;
+  formattedDate?: string;
+};
 
 @Injectable()
 export class CatalogService {
@@ -16,7 +23,7 @@ export class CatalogService {
    * Se houver searchTerm, retorna uma única lista filtrada
    * Caso contrário, retorna 4 listas com ordenações diferentes
    */
-  async getCatalog(filters: GetCatalogDto): Promise<CatalogSectionDto[] | CatalogSectionDto> {
+  async getCatalog(filters: GetCatalogDto, userId: number): Promise<CatalogSectionDto[] | CatalogSectionDto> {
     // Se houver termo de pesquisa, retorna uma única lista filtrada
     if (filters.searchTerm && filters.searchTerm.trim()) {
       const searchResults = await this.searchCatalog(filters);
@@ -27,20 +34,47 @@ export class CatalogService {
       };
     }
 
-    // Caso contrário, executa todas as queries em paralelo para não bloquear o event loop
-    const [topRated, newest, topFavored, oldest] = await Promise.all([
+    // Executa as queries em paralelo, mas trata nearby separadamente
+    const [topRated, newest, oldest, mostDonated, leastDonated] = await Promise.all([
       this.getTopRated(filters),
       this.getNewest(filters),
-      this.getTopFavored(filters),
       this.getOldest(filters),
+      this.getMostDonated(filters),
+      this.getLeastDonated(filters),
     ]);
 
-    return [
+    const sections: CatalogSectionDto[] = [
       { title: 'Melhor Avaliadas', type: 'topRated', items: this.sanitizeForResponse(topRated) },
       { title: 'Mais Recentes', type: 'newest', items: this.sanitizeForResponse(newest) },
-      { title: 'Mais Favoritas', type: 'topFavored', items: this.sanitizeForResponse(topFavored) },
+      { title: 'Próximas a Você', type: 'nearby', items: [] },
       { title: 'Mais Antigas', type: 'oldest', items: this.sanitizeForResponse(oldest) },
+      { title: 'Mais Doações Recebidas', type: 'mostDonated', items: this.sanitizeForResponse(mostDonated) },
+      { title: 'Menos Doações Recebidas', type: 'leastDonated', items: this.sanitizeForResponse(leastDonated) },
     ];
+
+    // Tenta adicionar nearby, mas se falhar, mantém a seção com mensagem
+    try {
+      const nearby = await this.getNearby(filters, userId);
+      if (nearby.length > 0) {
+        sections[2].items = this.sanitizeForResponse(nearby);
+      } else {
+        // Se não há items nearby, significa que usuário não tem endereço
+        sections[2] = {
+          title: 'Você precisa cadastrar seu endereço na plataforma para aparecer as ONGs mais próximas',
+          type: 'nearby',
+          items: []
+        };
+      }
+    } catch (error) {
+      // Se erro, mantém a seção com mensagem
+      sections[2] = {
+        title: 'Erro ao buscar ONGs próximas',
+        type: 'nearby',
+        items: []
+      };
+    }
+
+    return sections;
   }
 
   // --- MÉTODOS DE ACESSO PÚBLICO PARA SEÇÕES ESPECÍFICAS ---
@@ -101,19 +135,89 @@ export class CatalogService {
   }
 
   private async getTopRated(filters: GetCatalogDto) {
-    return this.findWithPriority(filters, 'averageRating', 'rating.average', 'desc');
+    return this.findWithPriority(filters, 'averageRating', 'rating.average', 'desc', true);
   }
 
   private async getNewest(filters: GetCatalogDto) {
-    return this.findWithPriority(filters, 'createdAt', 'createdAt', 'desc');
+    return this.findWithPriority(filters, 'createdAt', 'createdAt', 'desc', false, true);
   }
 
-  private async getTopFavored(filters: GetCatalogDto) {
-    return this.findWithPriority(filters, 'numberOfRatings', 'rating.count', 'desc');
+  private async getNearby(filters: GetCatalogDto, userId: number) {
+    const NEARBY_RADIUS_KM = 10;
+    const take = filters.limit || 10;
+    const skip = filters.offset || 0;
+
+    // Busca o endereço do usuário
+    const address = await this.prisma.address.findFirst({
+      where: {
+        OR: [{ donorId: userId }, { ongId: userId }],
+      },
+    });
+
+    if (!address || !address.latitude || !address.longitude) {
+      // Se não houver endereço, retorna lista vazia
+      return [];
+    }
+
+    const { categoryIds } = filters;
+
+    // Busca ONGs verificadas com endereço
+    const ongs = await this.prisma.ong.findMany({
+      where: {
+        verificationStatus: 'verified',
+        address: {
+          AND: [
+            { latitude: { not: null } },
+            { longitude: { not: null } },
+          ],
+        },
+        ...(categoryIds && categoryIds.length > 0 && {
+          profile: {
+            categories: {
+              some: { id: { in: categoryIds } },
+            },
+          },
+        }),
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        profile: {
+          select: { categories: true, avatarUrl: true, bannerUrl: true },
+        },
+        address: true,
+      },
+    });
+
+    // Calcula distância e filtra
+    const ongsWithDistance = ongs
+      .map((ong) => {
+        const distance = this.calculateDistance(
+          address.latitude!,
+          address.longitude!,
+          ong.address!.latitude!,
+          ong.address!.longitude!,
+        );
+        return { ong, distance };
+      })
+      .filter(({ distance }) => distance <= NEARBY_RADIUS_KM)
+      .sort(({ distance: distA }, { distance: distB }) => distA - distB)
+      .slice(skip, skip + take);
+
+    return ongsWithDistance.map(({ ong, distance }) => this.mapToDto(ong, categoryIds, Math.round(distance * 100) / 100));
   }
 
   private async getOldest(filters: GetCatalogDto) {
-    return this.findWithPriority(filters, 'createdAt', 'createdAt', 'asc');
+    return this.findWithPriority(filters, 'createdAt', 'createdAt', 'asc', false, true);
+  }
+
+  private async getMostDonated(filters: GetCatalogDto) {
+    return this.findWithDonationCount(filters, 'desc');
+  }
+
+  private async getLeastDonated(filters: GetCatalogDto) {
+    return this.findWithDonationCount(filters, 'asc');
   }
 
   /**
@@ -126,6 +230,8 @@ export class CatalogService {
     prismaField: string,
     dtoField: string,
     orderByDirection: 'asc' | 'desc',
+    includeRating: boolean = false,
+    includeFormattedDate: boolean = false,
   ): Promise<NgoItemWithMatch[]> {
     const { categoryIds } = filters;
     const take = filters.limit || 10;
@@ -169,7 +275,7 @@ export class CatalogService {
     });
 
     // 3. Mapeamento para DTO
-    let mappedResults = ongs.map((ong) => this.mapToDto(ong, categoryIds));
+    let mappedResults = ongs.map((ong) => this.mapToDto(ong, categoryIds, undefined, includeRating, false, includeFormattedDate));
 
     // 4. Re-ordenação por Prioridade + Paginação Manual (Se houver filtro)
     if (shouldFetchMore) {
@@ -181,16 +287,83 @@ export class CatalogService {
   }
 
   /**
+   * Busca ONGs ordenadas por quantidade de doações recebidas
+   */
+  private async findWithDonationCount(
+    filters: GetCatalogDto,
+    orderByDirection: 'asc' | 'desc',
+  ): Promise<NgoItemWithMatch[]> {
+    const { categoryIds } = filters;
+    const take = filters.limit || 10;
+    const skip = filters.offset || 0;
+
+    // 1. Construção do Filtro
+    const whereClause: any = {
+      verificationStatus: 'verified',
+    };
+
+    if (categoryIds && categoryIds.length > 0) {
+      whereClause.profile = {
+        categories: {
+          some: { id: { in: categoryIds } },
+        },
+      };
+    }
+
+    // 2. Busca no Prisma com contagem de doações
+    const ongs = await this.prisma.ong.findMany({
+      where: whereClause,
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        profile: {
+          select: { categories: true, avatarUrl: true, bannerUrl: true },
+        },
+        _count: {
+          select: { donations: true },
+        },
+      },
+      orderBy: [
+        { donations: { _count: orderByDirection } },
+        { userId: 'asc' }, // Desempate determinístico usando PK
+      ],
+      skip,
+      take,
+    });
+
+    // 3. Mapeamento para DTO
+    return ongs.map((ong) => this.mapToDto(ong, categoryIds, undefined, false, true));
+  }
+
+  /**
    * Transforma a entidade do Prisma para o DTO de Resposta
    * Retorna também o matchCount internamente para ordenação
    */
-  private mapToDto(ong: any, filterCategoryIds?: number[]): NgoItemWithMatch {
+  private mapToDto(
+    ong: any, 
+    filterCategoryIds?: number[], 
+    distance?: number,
+    includeRating: boolean = false,
+    includeDonationCount: boolean = false,
+    includeFormattedDate: boolean = false
+  ): NgoItemWithMatch {
     const categories = ong.profile?.categories || [];
     
     // Calcula quantos IDs batem com o filtro para o ranking (uso interno)
     const matchCount = filterCategoryIds?.length
       ? categories.filter((c) => filterCategoryIds.includes(c.id)).length
       : 0;
+
+    // Formatar data se solicitado
+    let formattedDate: string | undefined;
+    if (includeFormattedDate && ong.createdAt) {
+      const date = new Date(ong.createdAt);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      formattedDate = `${year}/${month}/${day}`;
+    }
 
     return {
       id: ong.userId,
@@ -202,6 +375,11 @@ export class CatalogService {
         name: c.name,
       })),
       createdAt: ong.createdAt,
+      distance, // Distância opcional
+      averageRating: includeRating ? (ong.averageRating || 0) : undefined,
+      numberOfRatings: includeRating ? (ong.numberOfRatings || 0) : undefined,
+      donationCount: includeDonationCount ? (ong._count?.donations || 0) : undefined,
+      formattedDate,
       matchCount, // Usado apenas para ordenação interna
     };
   }
@@ -211,5 +389,27 @@ export class CatalogService {
    */
   private sanitizeForResponse(items: NgoItemWithMatch[]): NgoItemDto[] {
     return items.map(({ matchCount, ...item }) => item);
+  }
+
+  /**
+   * Calcula a distância entre duas coordenadas usando a fórmula de Haversine
+   */
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371; // Raio da Terra em km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 }
