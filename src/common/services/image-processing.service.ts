@@ -43,7 +43,7 @@ export class ImageProcessingService {
   }
 
   /**
-   * Processa imagem para banner: redimensiona largura e comprime mantendo proporção
+   * Processa imagem para banner: corta para 16:9, redimensiona e comprime
    */
   async processBannerImage(filePath: string, width: number = 1920): Promise<string> {
     try {
@@ -52,10 +52,13 @@ export class ImageProcessingService {
         '-processed.jpg',
       );
 
+      // Banner em proporção 16:9 (1920x1080)
+      const height = Math.round(width * 9 / 16);
+
       await sharp(filePath)
-        .resize(width, null, {
-          fit: 'inside',
-          withoutEnlargement: true,
+        .resize(width, height, {
+          fit: 'cover',
+          position: 'center',
         })
         .jpeg({
           quality: 85,
