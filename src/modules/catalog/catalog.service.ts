@@ -156,7 +156,7 @@ export class CatalogService {
           select: { id: true, name: true, email: true },
         },
         profile: {
-          select: { categories: true, avatarUrl: true },
+          select: { categories: true, avatarUrl: true, bannerUrl: true },
         },
       },
       orderBy: [
@@ -196,6 +196,7 @@ export class CatalogService {
       id: ong.userId,
       name: ong.user?.name || 'ONG sem nome',
       avatarUrl: ong.profile?.avatarUrl || null,
+      bannerUrl: ong.profile?.bannerUrl || null,
       categories: categories.map((c) => ({
         id: c.id,
         name: c.name,

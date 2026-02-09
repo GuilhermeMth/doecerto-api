@@ -9,6 +9,7 @@ export class NgoItemDto {
   id: number;
   name: string;
   avatarUrl: string | null;
+  bannerUrl: string | null;
   categories: CategoryDto[];
   createdAt: Date;
 }
