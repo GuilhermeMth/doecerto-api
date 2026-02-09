@@ -172,12 +172,16 @@ export class DonationsService {
     const updateData: Prisma.DonationUpdateInput = {};
     const isCancelling = donationStatus === DonationStatus.canceled;
 
-    // Handle cancellation
+// Handle cancellation or completion
     if (isCancelling) {
       this.validateCancellation(donation.donationStatus);
       updateData.donationStatus = DonationStatus.canceled;
+    } else if (donationStatus === DonationStatus.completed) {
+      // ✅ LIBERAÇÃO: Permite que a ONG aceite (complete) a doação
+      updateData.donationStatus = DonationStatus.completed;
     } else if (donation.donationType === DonationType.monetary) {
-      throw new BadRequestException('Monetary donations can only be canceled');
+      // Bloqueia apenas edições de dados em doações monetárias
+      throw new BadRequestException('Monetary donations can only be canceled or completed');
     }
 
     const isDonor = donation.donorId === requesterId;
