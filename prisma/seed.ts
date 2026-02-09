@@ -177,6 +177,280 @@ async function main() {
   }
   console.log('');
 
+  // ==================== PERFIS DE DOADORES ====================
+  console.log('👤 Creating donor profiles...');
+  const donorProfileSeeds = [
+    {
+      donorId: donors[0].userId,
+      bio: 'Acredito que pequenas ações podem gerar grandes mudanças. Adoro ajudar causas sociais.',
+      contactNumber: '(11) 99901-2345',
+      avatarUrl: '/uploads/profiles/carlos-oliveira.jpg',
+    },
+    {
+      donorId: donors[1].userId,
+      bio: 'Profissional de marketing apaixonada por voluntariado e doações para educação.',
+      contactNumber: '(11) 99902-3456',
+      avatarUrl: '/uploads/profiles/fernanda-lima.jpg',
+    },
+    {
+      donorId: donors[2].userId,
+      bio: 'Engenheiro de software que dedica parte do tempo livre para causas ambientais.',
+      contactNumber: '(11) 99903-4567',
+      avatarUrl: '/uploads/profiles/gabriel-souza.jpg',
+    },
+    {
+      donorId: donors[3].userId,
+      bio: 'Médica pediatra que apoia projetos de saúde infantil e proteção animal.',
+      contactNumber: '(11) 99904-5678',
+      avatarUrl: '/uploads/profiles/helena-martins.jpg',
+    },
+    {
+      donorId: donors[4].userId,
+      bio: 'Professor universitário interessado em desenvolvimento comunitário e cultura.',
+      contactNumber: '(11) 99905-6789',
+      avatarUrl: '/uploads/profiles/igor-ribeiro.jpg',
+    },
+  ];
+
+  for (const profile of donorProfileSeeds) {
+    await prisma.donorProfile.create({ data: profile });
+    console.log(`✅ Donor profile created: ${donors.find(d => d.userId === profile.donorId)?.email}`);
+  }
+  console.log('');
+
+  // ==================== ENDEREÇOS ====================
+  console.log('📍 Creating addresses...');
+  const addressSeeds = [
+    // Endereços para ONGs verificadas
+    {
+      ongId: ongs[1].userId,
+      street: 'Rua das Flores',
+      number: '123',
+      complement: 'Sala 5',
+      neighborhood: 'Centro',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01234-567',
+      latitude: -23.5505,
+      longitude: -46.6333,
+    },
+    {
+      ongId: ongs[2].userId,
+      street: 'Avenida Brasil',
+      number: '456',
+      neighborhood: 'Jardins',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01452-001',
+      latitude: -23.5667,
+      longitude: -46.6500,
+    },
+    {
+      ongId: ongs[5].userId,
+      street: 'Rua do Progresso',
+      number: '789',
+      neighborhood: 'Vila Madalena',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '05443-000',
+      latitude: -23.5500,
+      longitude: -46.6833,
+    },
+    {
+      ongId: ongs[7].userId,
+      street: 'Praça da Natureza',
+      number: '321',
+      neighborhood: 'Pinheiros',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '05422-001',
+      latitude: -23.5667,
+      longitude: -46.6833,
+    },
+    {
+      ongId: ongs[10].userId,
+      street: 'Rua da Solidariedade',
+      number: '654',
+      neighborhood: 'Moema',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '04565-001',
+      latitude: -23.6000,
+      longitude: -46.6667,
+    },
+    {
+      ongId: ongs[12].userId,
+      street: 'Avenida da Vida',
+      number: '987',
+      neighborhood: 'Higienópolis',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01238-001',
+      latitude: -23.5333,
+      longitude: -46.6500,
+    },
+    {
+      ongId: ongs[14].userId,
+      street: 'Rua da Alegria',
+      number: '147',
+      neighborhood: 'Vila Mariana',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '04102-001',
+      latitude: -23.5833,
+      longitude: -46.6333,
+    },
+    // Endereços para doadores
+    {
+      donorId: donors[0].userId,
+      street: 'Rua dos Doadores',
+      number: '100',
+      neighborhood: 'Centro',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01000-000',
+      latitude: -23.5505,
+      longitude: -46.6333,
+    },
+    {
+      donorId: donors[1].userId,
+      street: 'Avenida Paulista',
+      number: '2000',
+      complement: 'Ap 1501',
+      neighborhood: 'Bela Vista',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01310-100',
+      latitude: -23.5617,
+      longitude: -46.6561,
+    },
+    {
+      donorId: donors[2].userId,
+      street: 'Rua Oscar Freire',
+      number: '800',
+      neighborhood: 'Jardins',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01426-001',
+      latitude: -23.5667,
+      longitude: -46.6500,
+    },
+    {
+      donorId: donors[3].userId,
+      street: 'Rua Augusta',
+      number: '1500',
+      neighborhood: 'Consolação',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01305-100',
+      latitude: -23.5500,
+      longitude: -46.6500,
+    },
+    {
+      donorId: donors[4].userId,
+      street: 'Rua da Consolação',
+      number: '3000',
+      neighborhood: 'Consolação',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01416-001',
+      latitude: -23.5500,
+      longitude: -46.6500,
+    },
+  ];
+
+  for (const address of addressSeeds) {
+    await prisma.address.create({ data: address });
+    const type = address.ongId ? 'ONG' : 'Donor';
+    const name = address.ongId 
+      ? ongs.find(o => o.userId === address.ongId)?.name 
+      : donors.find(d => d.userId === address.donorId)?.email;
+    console.log(`✅ Address created for ${type}: ${name}`);
+  }
+  console.log('');
+
+  // ==================== CONTAS BANCÁRIAS ====================
+  console.log('🏦 Creating bank accounts...');
+  
+  // Buscar os perfis criados para associar as contas bancárias
+  const createdProfiles = await prisma.ongProfile.findMany({
+    include: { ong: { include: { user: true } } }
+  });
+  
+  const bankAccountSeeds = [
+    {
+      profile: createdProfiles.find(p => p.ong.user.name === 'Instituto Viver Bem'),
+      bankName: 'Banco do Brasil',
+      agencyNumber: '1234-5',
+      accountNumber: '12345-6',
+      accountType: 'Corrente',
+      pixKey: 'contato@viverbem.org.br',
+    },
+    {
+      profile: createdProfiles.find(p => p.ong.user.name === 'Fundação Amigos do Futuro'),
+      bankName: 'Caixa Econômica Federal',
+      agencyNumber: '5678-9',
+      accountNumber: '56789-0',
+      accountType: 'Poupança',
+      pixKey: 'admin@amigosdofuturo.org',
+    },
+    {
+      profile: createdProfiles.find(p => p.ong.user.name === 'Instituto Crescer'),
+      bankName: 'Itaú',
+      agencyNumber: '9876-5',
+      accountNumber: '98765-4',
+      accountType: 'Corrente',
+      pixKey: 'admin@institutocrescer.org',
+    },
+    {
+      profile: createdProfiles.find(p => p.ong.user.name === 'Fundação Semear'),
+      bankName: 'Santander',
+      agencyNumber: '4321-0',
+      accountNumber: '43210-9',
+      accountType: 'Corrente',
+      pixKey: 'admin@fundacaosemear.org.br',
+    },
+    {
+      profile: createdProfiles.find(p => p.ong.user.name === 'Rede Solidária'),
+      bankName: 'Bradesco',
+      agencyNumber: '1357-9',
+      accountNumber: '13579-8',
+      accountType: 'Corrente',
+      pixKey: 'contato@redesolidaria.org',
+    },
+    {
+      profile: createdProfiles.find(p => p.ong.user.name === 'Instituto Vida Plena'),
+      bankName: 'Banco Itaú',
+      agencyNumber: '2468-0',
+      accountNumber: '24680-1',
+      accountType: 'Poupança',
+      pixKey: 'contato@vidaplena.org',
+    },
+    {
+      profile: createdProfiles.find(p => p.ong.user.name === 'Criança Feliz'),
+      bankName: 'Caixa Econômica',
+      agencyNumber: '8642-0',
+      accountNumber: '86420-1',
+      accountType: 'Corrente',
+      pixKey: 'contato@criancafeliz.org',
+    },
+  ].filter(item => item.profile); // Filtrar apenas os que têm perfil
+
+  for (const account of bankAccountSeeds) {
+    await prisma.ongBankAccount.create({
+      data: {
+        ongProfileId: account.profile!.id,
+        bankName: account.bankName,
+        agencyNumber: account.agencyNumber,
+        accountNumber: account.accountNumber,
+        accountType: account.accountType,
+        pixKey: account.pixKey,
+      },
+    });
+    console.log(`✅ Bank account created for ${account.profile!.ong.user.name}`);
+  }
+  console.log('');
+
   // ==================== PERFIS DE ONG ====================
   console.log('📝 Creating ONG profiles...');
   const profileSeeds = [
@@ -360,6 +634,9 @@ async function main() {
   console.log(`✅ ${donors.length} Donors created`);
   console.log(`✅ ${ongs.length} ONGs created (Verified: ${ongs.filter(o => o.status === VerificationStatus.verified).length}, Pending: ${ongs.filter(o => o.status === VerificationStatus.pending).length}, Rejected: ${ongs.filter(o => o.status === VerificationStatus.rejected).length})`);
   console.log(`✅ ${categories.length} Categories created`);
+  console.log(`✅ ${donorProfileSeeds.length} Donor profiles created`);
+  console.log(`✅ ${addressSeeds.length} Addresses created`);
+  console.log(`✅ ${bankAccountSeeds.length} Bank accounts created`);
   console.log(`✅ ${profileSeeds.length} ONG profiles created`);
   console.log(`✅ ${wishlistSeeds.length} Wishlist items created`);
   console.log(`✅ ${donationRecords.length} Donations created`);
