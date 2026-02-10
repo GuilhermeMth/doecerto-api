@@ -19,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDonorDto } from './dto/register-donor.dto';
 import { RegisterOngDto } from './dto/register-ong.dto';
 import type { UserResponseDto } from 'src/modules/users/dto/user-response.dto';
+import { ConfigService } from '@nestjs/config';
 
 interface AuthResponse {
   accessToken: string;
@@ -43,6 +44,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly mailerService: MailerService,
     private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
   ) {}
 
   async signIn(loginDto: LoginDto): Promise<AuthResponse> {

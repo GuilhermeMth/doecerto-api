@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { PrismaClient } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CacheService {
@@ -9,6 +9,7 @@ export class CacheService {
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly configService: ConfigService,
   ) {}
 
   private generateKey(filters: any, userId: number): string {
@@ -30,42 +31,36 @@ export class CacheService {
     await this.cacheManager.set(key, value, ttlSeconds * 1000);
   }
 
-  /**
-   * Invalidação REAL por prefixo (Redis-only)
-   * Funciona mesmo com cache em camadas
-   */
   async delByPrefix(prefix: string): Promise<void> {
-    const store: any = (this.cacheManager as any).store;
-
-    // Quando usa KeyvRedis, o client real fica aqui
-    const redis =
-      store?.stores?.find((s) => s?.client)?.client ??
-      store?.client;
+    const store = (this.cacheManager as any).store;
+    const redisStore = store?.stores?.find((s: any) => s?.opts?.store?.client || s?.client);
+    const redis = redisStore?.opts?.store?.client || redisStore?.client;
 
     if (!redis) {
-      this.logger.warn('Redis client not found, skipping prefix invalidation');
+      this.logger.warn('Redis client não encontrado para SCAN. Limpando cache global como fallback.');
+      await this.cacheManager.clear();
       return;
     }
 
-    const stream = redis.scanStream({
-      match: `${prefix}*`,
-      count: 100,
-    });
+    try {
+      const stream = redis.scanStream({
+        match: `${prefix}*`,
+        count: 100,
+      });
 
-    const keys: string[] = [];
-
-    for await (const chunk of stream) {
-      keys.push(...chunk);
-    }
-
-    if (keys.length > 0) {
-      await redis.del(keys);
-      this.logger.log(`🧹 Cache invalidated (${keys.length} keys) for prefix ${prefix}`);
+      for await (const keys of stream) {
+        if (keys.length > 0) {
+          await redis.del(keys);
+        }
+      }
+      this.logger.log(`🧹 Cache invalidado para o prefixo: ${prefix}`);
+    } catch (error) {
+      this.logger.error(`Erro ao invalidar prefixo ${prefix}:`, error);
     }
   }
 
   async clear(): Promise<void> {
     await this.cacheManager.clear();
-    this.logger.log('🗑️ Global cache cleared');
+    this.logger.log('🗑️ Cache global limpo');
   }
 }
