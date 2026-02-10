@@ -1,5 +1,5 @@
 # STAGE 1: BUILDER
-FROM node:20-alpine AS builder
+FROM node:22-alpine3.23 AS builder
 
 RUN apk add --no-cache openssl
 
@@ -17,7 +17,7 @@ RUN npm run build
 RUN npm prune --production
 
 # STAGE 2: RUNNER
-FROM node:20-alpine AS runner
+FROM node:22-alpine3.23 AS runner
 
 RUN apk add --no-cache openssl
 ENV NODE_ENV=production

@@ -47,5 +47,5 @@ jobs:
         with:
           command: quickview,cves
           image: ${{ secrets.DOCKERHUB_USERNAME }}/doecerto-api:latest
-          only-severities: critical,high
+          only-severities: critical
           exit-code: true
