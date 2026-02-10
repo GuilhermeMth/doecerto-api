@@ -10,7 +10,6 @@ export class DonorProfilesService {
     bio: true,
     avatarUrl: true,
     contactNumber: true,
-    address: true,
     createdAt: true,
     updatedAt: true,
     donor: {
