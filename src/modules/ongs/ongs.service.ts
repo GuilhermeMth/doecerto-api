@@ -7,10 +7,12 @@ import { UpdateOngDto } from './dto/update-ong.dto';
 import { GetNearbyOngDto, NearbyOngResponseDto } from './dto/nearby-ong.dto';
 import { excludePassword } from 'src/common/utils/exclude-password.util';
 import { ValidationUtil } from 'src/common/utils/validation.util';
+import { CacheService } from 'src/cache/cache.service';
 
 @Injectable()
 export class OngsService {
   private readonly SALT_ROUNDS = 10;
+
   private readonly ongSelect = {
     userId: true,
     cnpj: true,
@@ -19,23 +21,23 @@ export class OngsService {
     verifiedById: true,
     rejectionReason: true,
     user: {
-      select: { id: true, name: true, email: true }
-    }
+      select: { id: true, name: true, email: true },
+    },
   } as const;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async create(createOngDto: CreateOngDto) {
     const { name, email, password, cnpj } = createOngDto;
 
-    // Validate unique constraints
     await ValidationUtil.validateUniqueCnpj(this.prisma, cnpj);
     await ValidationUtil.validateUniqueEmail(this.prisma, email);
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
 
-    // Create user and ONG in a transaction
     const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -56,6 +58,9 @@ export class OngsService {
       return { user, ong };
     });
 
+    // invalidação do catálogo
+    await this.cacheService.delByPrefix('catalog:');
+
     return {
       user: excludePassword(result.user),
       ong: result.ong,
@@ -71,12 +76,20 @@ export class OngsService {
         select: this.ongSelect,
         skip: validSkip,
         take: validTake,
-        orderBy: { userId: 'desc' }
+        orderBy: { userId: 'desc' },
       }),
-      this.prisma.ong.count()
+      this.prisma.ong.count(),
     ]);
 
-    return { data: ongs, pagination: { skip: validSkip, take: validTake, total, pages: Math.ceil(total / validTake) } };
+    return {
+      data: ongs,
+      pagination: {
+        skip: validSkip,
+        take: validTake,
+        total,
+        pages: Math.ceil(total / validTake),
+      },
+    };
   }
 
   async findOne(id: number) {
@@ -98,7 +111,6 @@ export class OngsService {
       throw new NotFoundException(`ONG with id ${id} not found`);
     }
 
-    // Validate CNPJ if being updated
     if (updateOngDto.cnpj && updateOngDto.cnpj !== ong.cnpj) {
       await ValidationUtil.validateUniqueCnpj(
         this.prisma,
@@ -107,10 +119,15 @@ export class OngsService {
       );
     }
 
-    return this.prisma.ong.update({
+    const updated = await this.prisma.ong.update({
       where: { userId: id },
       data: updateOngDto,
     });
+
+    // invalidação do catálogo
+    await this.cacheService.delByPrefix('catalog:');
+
+    return updated;
   }
 
   async remove(id: number) {
@@ -119,11 +136,16 @@ export class OngsService {
       throw new NotFoundException(`ONG with id ${id} not found`);
     }
 
-    return this.prisma.ong.delete({ where: { userId: id } });
+    const deleted = await this.prisma.ong.delete({ where: { userId: id } });
+
+    // invalidação do catálogo
+    await this.cacheService.delByPrefix('catalog:');
+
+    return deleted;
   }
 
   async buscarOngsPorNomeOuCnpj(termo: string) {
-    const ongs = await this.prisma.ong.findMany({
+    return this.prisma.ong.findMany({
       where: {
         OR: [
           { cnpj: { contains: termo } },
@@ -136,25 +158,15 @@ export class OngsService {
       },
       select: this.ongSelect,
     });
-
-    return ongs;
   }
 
-  /**
-   * Calcula a distância entre dois pontos geográficos usando a fórmula de Haversine
-   * @param lat1 Latitude do ponto 1
-   * @param lon1 Longitude do ponto 1
-   * @param lat2 Latitude do ponto 2
-   * @param lon2 Longitude do ponto 2
-   * @returns Distância em quilômetros
-   */
   private calculateDistance(
     lat1: number,
     lon1: number,
     lat2: number,
     lon2: number,
   ): number {
-    const R = 6371; // Raio da Terra em km
+    const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
@@ -167,13 +179,7 @@ export class OngsService {
     return R * c;
   }
 
-  /**
-   * Busca ONGs verificadas dentro de 10km usando o endereço do usuário logado
-   * @param userId ID do usuário (donor ou ong)
-   * @returns Array de ONGs com suas distâncias, ordenadas por proximidade
-   */
   async getNearbyWithUserAddress(userId: number) {
-    // Busca o endereço do usuário (funciona para donor ou ong)
     const address = await this.prisma.address.findFirst({
       where: {
         OR: [{ donorId: userId }, { ongId: userId }],
@@ -186,7 +192,6 @@ export class OngsService {
       );
     }
 
-    // Chama o método existente getNearby com os dados do endereço
     return this.getNearby({
       latitude: address.latitude,
       longitude: address.longitude,
@@ -195,11 +200,6 @@ export class OngsService {
     });
   }
 
-  /**
-   * Busca ONGs verificadas dentro de 10km da localização do usuário
-   * @param filters Latitude, longitude e paginação
-   * @returns Array de ONGs com suas distâncias, ordenadas por proximidade
-   */
   async getNearby(filters: GetNearbyOngDto) {
     const NEARBY_RADIUS_KM = 10;
     const skip = filters.skip || 0;
@@ -208,7 +208,6 @@ export class OngsService {
     const validTake = Math.min(Math.max(take, 1), 100);
     const validSkip = Math.max(skip, 0);
 
-    // Busca todas as ONGs verificadas com endereço e localização
     const ongs = await this.prisma.ong.findMany({
       where: {
         verificationStatus: 'verified',
@@ -220,15 +219,9 @@ export class OngsService {
         },
       },
       include: {
-        user: {
-          select: { id: true, name: true },
-        },
+        user: { select: { id: true, name: true } },
         profile: {
-          select: {
-            avatarUrl: true,
-            bio: true,
-            bannerUrl: true,
-          },
+          select: { avatarUrl: true, bio: true, bannerUrl: true },
         },
         address: {
           select: {
@@ -245,7 +238,6 @@ export class OngsService {
       },
     });
 
-    // Calcula distância e filtra apenas ONGs dentro do raio de 10km
     const ongsWithDistance = ongs
       .map((ong) => {
         const distance = this.calculateDistance(
@@ -255,37 +247,37 @@ export class OngsService {
           ong.address!.longitude!,
         );
 
-        return {
-          ong,
-          distance,
-        };
+        return { ong, distance };
       })
       .filter(({ distance }) => distance <= NEARBY_RADIUS_KM)
-      .sort(({ distance: distA }, { distance: distB }) => distA - distB);
+      .sort((a, b) => a.distance - b.distance);
 
-    // Aplica paginação
-    const paginatedOngs = ongsWithDistance.slice(validSkip, validSkip + validTake);
+    const paginatedOngs = ongsWithDistance.slice(
+      validSkip,
+      validSkip + validTake,
+    );
 
-    // Mapeia para o DTO de resposta
-    const data: NearbyOngResponseDto[] = paginatedOngs.map(({ ong, distance }) => ({
-      id: ong.userId,
-      userId: ong.userId,
-      name: ong.user.name,
-      avatarUrl: ong.profile?.avatarUrl || null,
-      bannerUrl: ong.profile?.bannerUrl || null,
-      bio: ong.profile?.bio || null,
-      averageRating: ong.averageRating || 0,
-      numberOfRatings: ong.numberOfRatings || 0,
-      distance: Math.round(distance * 100) / 100, // Arredonda para 2 casas decimais
-      address: {
-        street: ong.address!.street,
-        number: ong.address!.number,
-        neighborhood: ong.address!.neighborhood,
-        city: ong.address!.city,
-        state: ong.address!.state,
-        zipCode: ong.address!.zipCode,
-      },
-    }));
+    const data: NearbyOngResponseDto[] = paginatedOngs.map(
+      ({ ong, distance }) => ({
+        id: ong.userId,
+        userId: ong.userId,
+        name: ong.user.name,
+        avatarUrl: ong.profile?.avatarUrl || null,
+        bannerUrl: ong.profile?.bannerUrl || null,
+        bio: ong.profile?.bio || null,
+        averageRating: ong.averageRating || 0,
+        numberOfRatings: ong.numberOfRatings || 0,
+        distance: Math.round(distance * 100) / 100,
+        address: {
+          street: ong.address!.street,
+          number: ong.address!.number,
+          neighborhood: ong.address!.neighborhood,
+          city: ong.address!.city,
+          state: ong.address!.state,
+          zipCode: ong.address!.zipCode,
+        },
+      }),
+    );
 
     return {
       data,

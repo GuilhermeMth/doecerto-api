@@ -18,9 +18,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     DonorsModule,
     OngsModule,
     PrismaModule,
-
     PassportModule.register({ defaultStrategy: 'jwt' }),
-
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
