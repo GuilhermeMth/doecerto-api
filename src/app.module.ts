@@ -17,6 +17,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { OngsBankAccountModule } from './modules/ongs-bank-account/ongs-bank-account.module';
+import { CacheConfigModule } from './cache/cache.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { OngsBankAccountModule } from './modules/ongs-bank-account/ongs-bank-acc
     CategoriesModule,
     AddressesModule,
     OngsBankAccountModule,
+    CacheConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

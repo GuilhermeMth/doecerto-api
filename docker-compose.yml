@@ -2,6 +2,8 @@ services:
   db:
     image: mysql:8
     restart: always
+    env_file:
+      - .env
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -23,8 +25,22 @@ services:
     networks:
       - app_network
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
+
 networks:
   app_network:
 
 volumes:
   mysql_data:
+  redis_data:

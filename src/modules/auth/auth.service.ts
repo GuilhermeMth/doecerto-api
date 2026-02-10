@@ -14,6 +14,7 @@ import { UsersService } from 'src/modules/users/users.service';
 import { DonorsService } from 'src/modules/donors/donors.service';
 import { OngsService } from 'src/modules/ongs/ongs.service';
 import { MailerService } from 'src/common/services/mailer.service';
+import { CacheService } from 'src/cache/cache.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDonorDto } from './dto/register-donor.dto';
 import { RegisterOngDto } from './dto/register-ong.dto';
@@ -41,6 +42,7 @@ export class AuthService {
     private readonly ongsService: OngsService,
     private readonly prisma: PrismaService,
     private readonly mailerService: MailerService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async signIn(loginDto: LoginDto): Promise<AuthResponse> {
@@ -85,6 +87,9 @@ export class AuthService {
     const { user: newUser, ong: newOngProfile } =
       await this.ongsService.create(registerOngDto);
 
+    // invalidação do cache do catálogo
+    await this.cacheService.delByPrefix('catalog:');
+
     const token = this.generateToken(newUser);
     const userResponse = this.formatUserResponse(newUser);
 
@@ -95,7 +100,6 @@ export class AuthService {
     };
   }
 
-  // Private helper methods
   private async checkEmailAvailability(email: string): Promise<void> {
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
@@ -122,23 +126,18 @@ export class AuthService {
     };
   }
 
-  // Password Reset Methods
   async forgotPassword(email: string): Promise<void> {
     this.logger.log(`Forgot password requested for ${email}`);
     const user = await this.usersService.findByEmail(email);
 
     if (!user) {
-      // Não revelar se o email existe (segurança)
       this.logger.warn(`Forgot password: user not found for ${email}`);
       return;
     }
 
-    // Gerar token criptográfico
     const token = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    this.logger.log(`Password reset token generated for ${email}`);
 
-    // Salvar token no BD com expiração de 15 minutos
     await this.prisma.passwordResetToken.create({
       data: {
         email,
@@ -147,9 +146,7 @@ export class AuthService {
       },
     });
 
-    // Enviar email
     await this.mailerService.sendPasswordResetEmail(email, token, user.name);
-    this.logger.log(`Password reset flow completed (email dispatched/logged) for ${email}`);
   }
 
   async validateResetToken(token: string): Promise<boolean> {
@@ -161,7 +158,6 @@ export class AuthService {
 
     if (!resetToken) return false;
 
-    // Verificar expiração
     if (resetToken.expiresAt < new Date()) {
       await this.prisma.passwordResetToken.delete({
         where: { tokenHash },
@@ -169,7 +165,6 @@ export class AuthService {
       return false;
     }
 
-    // Verificar se já foi usado
     if (resetToken.used) return false;
 
     return true;
@@ -186,10 +181,8 @@ export class AuthService {
       throw new BadRequestException('Token inválido ou expirado');
     }
 
-    // Hash da nova senha
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Atualizar usuário e marcar token como usado em transação
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { email: resetToken.email },
