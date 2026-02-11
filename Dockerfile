@@ -22,13 +22,15 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
 
-# Criamos as pastas de logs e uploads
+# Criamos as pastas de logs e uploads e copiamos entrypoint
 USER root
 RUN mkdir -p /app/uploads/profiles /app/uploads/payment-proofs /app/logs && \
-    chown -R node:node /app/uploads /app/logs
+    chown -R node:node /app/uploads /app/logs /app/node_modules /app/dist /app/prisma /app/package*.json
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x /app/entrypoint.sh && chown node:node /app/entrypoint.sh
 USER node
 
 EXPOSE 3501
 
-# O comando padrão caso ninguém injete nada
-CMD ["node", "dist/main"]
+# Usar entrypoint para rodar migrations e seed
+ENTRYPOINT ["/app/entrypoint.sh"]
