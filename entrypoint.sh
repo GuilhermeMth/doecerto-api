@@ -36,11 +36,17 @@ if [ ! -z "$DATABASE_URL" ]; then
   echo "🔄 Executando migrations..."
   npx prisma migrate deploy || echo "⚠️  Migrations já aplicadas ou erro (continuando...)"
 
-  # Rodar seed para criar dados mockados (admin, donors, etc)
-  echo "🌱 Seeding dados mockados..."
-  npx prisma db seed || echo "⚠️  Seed já executado ou erro (continuando...)"
-  
-  echo "✅ Banco de dados atualizado!"
+  # Importar dados mockados gerados durante o build
+  if [ -f "/app/seed-data.sql" ]; then
+    echo "🌱 Importando dados mockados..."
+    # Extrair credenciais do DATABASE_URL
+    DB_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
+    DB_PASS=$(echo $DATABASE_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\).*/\1/p')
+    DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
+    
+    mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < /app/seed-data.sql || echo "⚠️  Erro ao importar seed (continuando...)"
+    echo "✅ Dados mockados importados!"
+  fi
 fi
 
 echo "✅ Tudo pronto! Iniciando servidor..."
