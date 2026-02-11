@@ -1,0 +1,38 @@
+# Dependências (Devem ser instaladas dentro do container para evitar conflito de arquitetura)
+node_modules
+npm-debug.log
+
+# Variáveis de Ambiente (Segurança: impede que suas senhas fiquem gravadas na imagem)
+.env
+.env.production
+.env.development
+.env.local
+
+# Builds e Artefatos (Evita copiar o build do seu PC; o Docker deve buildar do zero)
+dist
+build
+*.db
+
+# Docker e Logs
+docker-compose.yml
+Dockerfile
+.dockerignore
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# Prisma (Opcional: impede que o client gerado no seu PC interfira no do container)
+# Mas mantenha a pasta prisma/ (onde está o schema)
+generated
+
+# Git
+.git
+.gitignore
+
+# Outros
+README.md
+.vscode
+.cursor
+.github

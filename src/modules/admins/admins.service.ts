@@ -3,7 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service'; // Alterar importação
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { excludePassword } from 'src/common/utils/exclude-password.util';
 import { CreateAdminDto } from './dto/create-admin.dto';
@@ -12,7 +13,8 @@ import { MetricsService } from 'src/modules/metrics/metrics.service';
 @Injectable()
 export class AdminsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Alterar de PrismaClient para PrismaService
+    private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
   ) {}
 
@@ -71,18 +73,19 @@ export class AdminsService {
 
   // Aprovar ONG
   async approveOng(ongId: number, adminId: number) {
+    const adminRole = this.configService.get<string>('ADMIN_ROLE') || 'default_admin';
     // Validar se admin existe
     const admin = await this.prisma.admin.findUnique({
       where: { userId: adminId },
     });
-    
+
     if (!admin) throw new BadRequestException('Invalid admin');
 
     const ong = await this.prisma.ong.findUnique({
       where: { userId: ongId },
       select: { userId: true, cnpj: true }
     });
-    
+
     if (!ong) throw new NotFoundException('ONG not found');
 
     const updatedOng = await this.prisma.ong.update({
@@ -101,7 +104,7 @@ export class AdminsService {
         user: { select: { id: true, name: true, email: true } }
       }
     });
-    
+
     return updatedOng;
   }
 

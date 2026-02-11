@@ -4,12 +4,18 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const configService = app.get(ConfigService);
+
+  const frontendUrl = configService.get<string>('FRONTEND_URL');
+  const origins = [frontendUrl].filter((origin): origin is string => Boolean(origin));
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: origins.length > 0 ? origins : '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
@@ -27,6 +33,7 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3001);
+  const port = configService.get<number>('PORT') || 3001;
+  await app.listen(port);
 }
 void bootstrap();

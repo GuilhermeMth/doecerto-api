@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { PrismaClient } from 'generated/prisma';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserRole } from '../users/dto/create-user.dto';
 import { CreateOngDto } from './dto/create-ong.dto';
@@ -27,6 +29,7 @@ export class OngsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
   ) {}
 
