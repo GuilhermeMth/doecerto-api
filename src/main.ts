@@ -5,11 +5,13 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const prisma = app.get(PrismaService);
 
   // ============================================
   // CONFIGURAÇÃO DE CORS PARA WEB E MOBILE (CAPACITOR)
@@ -91,6 +93,25 @@ async function bootstrap() {
   logger.log(`🚀 API rodando em: http://localhost:${port}`);
   logger.log(`🌐 Ambiente: ${configService.get('NODE_ENV') || 'production'}`);
   logger.log(`📱 Suporte para Capacitor (Android/iOS) e Web Azure habilitado`);
+
+  // Ensure hardcoded admin is registered in the database
+  const adminEmail = 'admin@example.com';
+  const adminPassword = '$2b$10$oy5xDYIcNfswR5gQQxtaYedB9/Z1goXvbfGaL3P8rccQSn31gnPt2'; // bcrypt hash for 'admin@2026'
+
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!existingAdmin) {
+    await prisma.user.create({
+      data: {
+        name: 'Admin User',
+        email: adminEmail,
+        password: adminPassword,
+        role: 'admin',
+      },
+    });
+    logger.log('🚀 Hardcoded admin account successfully created in the database.');
+  } else {
+    logger.log('Admin account already exists.');
+  }
 }
 
 void bootstrap();

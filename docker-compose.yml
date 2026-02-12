@@ -42,32 +42,6 @@ services:
     networks:
       - app_network
 
-  # --- SUA API (NestJS) ---
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: doecerto_app
-    restart: always
-    ports:
-      - "3501:3501" # Acessível no seu PC via 3501 (conforme seu .env novo)
-    env_file:
-      - .env
-    environment:
-      # Conexão interna usa o nome do serviço 'db' na porta padrão 3306
-      DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/${MYSQL_DATABASE}"
-      REDIS_HOST: "redis"
-      REDIS_PORT: 6379
-      PORT: 3501
-      NODE_ENV: development
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - app_network
-
 networks:
   app_network:
     driver: bridge
