@@ -1,26 +1,17 @@
 #!/bin/sh
-
-# O script para se houver erro
 set -e
 
-echo "⏳ Verificando disponibilidade do banco de dados..."
-
-# Aguarda a porta 3306 do serviço 'db' responder
-# Se o host for diferente de 'db', a variável $DB_HOST deve ser passada pela infra
-DB_HOST=${DB_HOST:-db}
-DB_PORT=${DB_PORT:-3306}
-
-while ! nc -z $DB_HOST $DB_PORT; do
-  echo "... aguardando o MySQL em $DB_HOST:$DB_PORT"
-  sleep 2
+# Aguarda o banco (usando as variáveis do seu docker-compose)
+echo "⏳ Aguardando MySQL em mysql:3306..."
+while ! nc -z mysql 3306; do
+  sleep 1
 done
 
-echo "✅ Banco de dados detectado!"
+echo "✅ Banco online!"
 
-# 1. Aplica as migrations que ainda não foram aplicadas
-echo "🚀 Sincronizando schema do banco (Prisma Migrate)..."
+# Roda as migrations (Rápido, pois só aplica o que falta)
+echo "🚀 Aplicando migrations..."
 npx prisma migrate deploy
 
-# 2. Continua para o comando principal (node dist/main)
-echo "🏁 Iniciando o servidor NestJS..."
+# Inicia a aplicação
 exec "$@"

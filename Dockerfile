@@ -6,39 +6,41 @@ COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm ci
 COPY . .
-# GERA O CLIENTE AQUI para o código compilar com os tipos corretos
+# Geramos o cliente aqui para garantir que o build do NestJS (TS -> JS) funcione
 RUN npx prisma generate
 RUN npm run build
 RUN npm prune --production
 
 # --- STAGE 2: RUNNER ---
 FROM node:20-alpine AS runner
-RUN apk add --no-cache openssl netcat-openbsd
+# Adicionado libc6-compat aqui também, pois o engine do Prisma precisa dele no Alpine
+RUN apk add --no-cache openssl netcat-openbsd libc6-compat
 
 ENV NODE_ENV=production
 WORKDIR /app
 
-# Copia dependências e código compilado
+# 1. Copia dependências e código
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
 
-# Se o seu prisma output for customizado (../generated), descomente a linha abaixo:
-# COPY --from=builder /app/generated ./generated 
+# 2. O PONTO CHAVE: Você PRECISA copiar a pasta gerada se o output não for o padrão
+# Como seu erro indicou '../../generated', essa pasta TEM que vir do builder
+COPY --from=builder /app/generated ./generated 
 
-# Configura o entrypoint
+# 3. Configura o entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Permissões de pastas
+# 4. Permissões de pastas
 USER root
-RUN mkdir -p /app/uploads /app/logs && \
-    chown -R node:node /app/uploads /app/logs /app/prisma
+# Adicionamos /app/generated na lista de permissões
+RUN mkdir -p /app/uploads/profiles /app/uploads/payment-proofs /app/logs && \
+    chown -R node:node /app/uploads /app/logs /app/prisma /app/generated
 USER node
 
 EXPOSE 3501
 
-# ENTRYPOINT chama o script, CMD passa o comando final para o 'exec "$@"'
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "dist/main"]
