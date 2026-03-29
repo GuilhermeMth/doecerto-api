@@ -342,4 +342,15 @@ export class AdminsService {
   async getMetrics() {
     return this.metricsService.getMetrics();
   }
+
+  // Hardcoded admin account for testing purposes
+  getHardcodedAdmin() {
+    return {
+      id: 1,
+      name: 'Admin User',
+      email: 'admin@example.com',
+      role: 'admin',
+      password: '$2b$10$oy5xDYIcNfswR5gQQxtaYedB9/Z1goXvbfGaL3P8rccQSn31gnPt2', // bcrypt hash for 'admin@2026'
+    };
+  }
 }
