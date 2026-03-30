@@ -75,7 +75,7 @@ export class DonorProfilesService {
   }
 
   /**
-   * Busca os detalhes completos de um perfil
+   * Busca os detalhes completos de um perfil, retornando null se não existir
    * @param userId ID do doador/usuário
    */
   async findOne(userId: number) {
@@ -83,6 +83,16 @@ export class DonorProfilesService {
       where: { donorId: userId },
       select: this.profileSelect,
     });
+
+    return profile;
+  }
+
+  /**
+   * Busca os detalhes completos de um perfil, lançando erro se não existir
+   * @param userId ID do doador/usuário
+   */
+  async findOneOrThrow(userId: number) {
+    const profile = await this.findOne(userId);
 
     if (!profile) {
       throw new NotFoundException('Perfil do doador não encontrado.');

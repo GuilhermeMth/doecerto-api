@@ -58,8 +58,8 @@ model DonorProfile {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  donorId       Int      @unique
-  donor         Donor    @relation(fields: [donorId], references: [userId], onDelete: Cascade)
+  donorId       Int?     @unique
+  donor         Donor?   @relation(fields: [donorId], references: [userId], onDelete: Cascade)
 
   @@map("donor_profiles")
 }
