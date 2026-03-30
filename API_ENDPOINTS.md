@@ -682,6 +682,8 @@ Deleta uma ONG.
 
 Cria ou atualiza o perfil do doador autenticado.
 
+⚠️ **IMPORTANTE:** O perfil do doador é **OPCIONAL** e pode ser criado a qualquer momento após o registro. Não é necessário criar o perfil no cadastro.
+
 **Content-Type:** `multipart/form-data`
 
 **Form Fields:**
@@ -717,8 +719,10 @@ Cria ou atualiza o perfil do doador autenticado.
 
 Obtém o perfil do doador autenticado.
 
-**Response (200 OK):**
+**Response (200 OK):** Retorna o perfil quando ele existe
 Similar ao POST, sem o campo `createdAt`
+
+**Response (204 No Content):** Quando o doador ainda não criou seu perfil (é opcional)
 
 ---
 
@@ -726,8 +730,11 @@ Similar ao POST, sem o campo `createdAt`
 
 Obtém o perfil público de um doador.
 
-**Response (200 OK):**
+**Response (200 OK):** Retorna o perfil quando ele existe
 Similar ao GET `/donors/me/profile`
+
+**Erros Possíveis:**
+- `404 Not Found` - Quando o doador não tem um perfil criado (perfil é opcional)
 
 ---
 
