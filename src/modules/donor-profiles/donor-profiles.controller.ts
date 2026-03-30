@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   BadRequestException,
   UseGuards,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DonorProfilesService } from './donor-profiles.service';
@@ -62,6 +63,6 @@ export class DonorProfilesController {
 
   @Get(':donorId/profile')
   async findOne(@Param('donorId', ParseIntPipe) donorId: number) {
-    return this.donorProfilesService.findOne(donorId);
+    return this.donorProfilesService.findOneOrThrow(donorId);
   }
 }
