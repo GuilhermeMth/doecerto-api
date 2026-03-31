@@ -109,7 +109,7 @@ Registra um novo doador.
 **Validações:**
 - CPF deve ser válido (formato: 000.000.000-00)
 - Email deve ser único
-- Senha mínimo 6 caracteres
+- Senha mínimo 8 e máximo 128 caracteres
 
 **Erros Possíveis:**
 - `409 Conflict` - Email ou CPF já registrado
@@ -153,7 +153,7 @@ Registra uma nova ONG.
 **Validações:**
 - CNPJ deve ser válido (formato: 00.000.000/0000-00)
 - Email deve ser único
-- Senha mínimo 6 caracteres
+- Senha mínimo 8 e máximo 128 caracteres
 
 **Erros Possíveis:**
 - `409 Conflict` - Email ou CNPJ já registrado
@@ -234,6 +234,9 @@ Redefine a senha usando um token válido.
   "message": "Senha atualizada com sucesso"
 }
 ```
+
+**Validações:**
+- Nova senha mínimo 8 e máximo 128 caracteres
 
 **Erros Possíveis:**
 - `400 Bad Request` - Token inválido ou expirado
@@ -742,6 +745,8 @@ Similar ao GET `/donors/me/profile`
 
 Cria ou atualiza o perfil da ONG autenticada.
 
+⚠️ **IMPORTANTE:** O perfil da ONG é **OPCIONAL** e pode ser criado a qualquer momento após o registro.
+
 **Content-Type:** `multipart/form-data`
 
 **Form Fields:**
@@ -854,6 +859,9 @@ Obtém o perfil completo e público de uma ONG.
   "updatedAt": "2024-01-15T10:30:00Z"
 }
 ```
+
+**Erros Possíveis:**
+- `404 Not Found` - Quando a ONG ainda não criou o perfil (perfil é opcional)
 
 ---
 

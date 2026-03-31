@@ -12,7 +12,9 @@ export class CreateUserDto {
   email: string;
 
   @IsNotEmpty({ message: 'Password is required' })
-  @Length(6, 100, { message: 'Password must be at least 6 characters' })
+  @Length(8, 128, {
+    message: 'Password must be between 8 and 128 characters',
+  })
   password: string;
 
   @IsEnum(Role, { message: 'Role must be donor, ong, or admin' })

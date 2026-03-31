@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { IsCPF } from '@sh4rkzy/brazilian-validator';
 
 export class RegisterDonorDto {
@@ -14,7 +20,8 @@ export class RegisterDonorDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Password should not be empty' })
-  @MaxLength(8, { message: 'Password is too long' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @MaxLength(128, { message: 'Password is too long' })
   password: string;
 
   @IsCPF({ message: 'Invalid CPF' })

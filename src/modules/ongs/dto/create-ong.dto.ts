@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsEmail,
   MinLength,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateOngDto {
@@ -17,7 +18,8 @@ export class CreateOngDto {
   email: string;
 
   @IsNotEmpty({ message: 'Password is required' })
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @MaxLength(128, { message: 'Password is too long' })
   password: string;
 
   // Campos da ONG

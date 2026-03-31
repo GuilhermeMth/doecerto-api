@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsEmail, Matches, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEmail,
+  Matches,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 
 export enum Role {
   USER = 'USER',
@@ -17,7 +23,8 @@ export class CreateDonorDto {
   email: string;
 
   @IsNotEmpty({ message: 'Password is required' })
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @MaxLength(128, { message: 'Password is too long' })
   password: string;
 
   // Campos do donor

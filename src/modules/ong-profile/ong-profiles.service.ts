@@ -116,17 +116,45 @@ export class OngProfilesService {
   }
 
   /**
-   * Busca os detalhes completos de um perfil
-   * @param userId ID da ONG/Usuário
+   * Busca os detalhes do perfil da ONG autenticada.
+   * Sempre retorna um objeto de perfil (fallback quando ainda não existe ong_profile).
    */
-  async findOne(userId: number) {
+  async findMyProfile(userId: number) {
     // Busca o perfil da ONG
     const profile = await this.prisma.ongProfile.findUnique({
       where: { ongId: userId },
       select: this.profileSelect,
     });
     if (!profile) {
-      throw new NotFoundException('Perfil da ONG não encontrado.');
+      const ong = await this.prisma.ong.findUnique({
+        where: { userId },
+        select: {
+          userId: true,
+          averageRating: true,
+          numberOfRatings: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          address: true,
+        },
+      });
+
+      if (!ong) {
+        throw new NotFoundException(`ONG com userId ${userId} não encontrada.`);
+      }
+
+      const receivedDonations = await this.prisma.donation.count({
+        where: { ongId: userId },
+      });
+
+      const address = await this.getOngAddress(ong.address);
+
+      return this.buildMyProfileFallback(ong, receivedDonations, address);
     }
 
     // Busca a quantidade de doações recebidas
@@ -146,6 +174,67 @@ export class OngProfilesService {
       ...this.cleanProfileResponse(profile, receivedDonations, address),
       bankAccounts,
       pixKey,
+    };
+  }
+
+  /**
+   * Busca o perfil público da ONG.
+   * Quando o perfil ainda não existe, retorna fallback ao invés de 404.
+   */
+  async findPublicProfile(userId: number) {
+    return this.findMyProfile(userId);
+  }
+
+  async findPublicProfileOrThrow(userId: number) {
+    return this.findPublicProfile(userId);
+  }
+
+  private buildMyProfileFallback(
+    ong: {
+      userId: number;
+      averageRating: number | null;
+      numberOfRatings: number;
+      user: {
+        name: string;
+        email: string;
+        createdAt: Date;
+        updatedAt: Date;
+      } | null;
+    },
+    receivedDonations: number,
+    address: {
+      street: string;
+      number: string;
+      complement: string | null;
+      neighborhood: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+      latitude: number | null;
+      longitude: number | null;
+    } | null,
+  ) {
+    return {
+      id: ong.userId,
+      name: ong.user?.name || null,
+      email: ong.user?.email || null,
+      avatarUrl: null,
+      bannerUrl: null,
+      about: null,
+      contactNumber: null,
+      websiteUrl: null,
+      receivedDonations,
+      rating: {
+        average: ong.averageRating || 0,
+        count: ong.numberOfRatings || 0,
+      },
+      categories: [],
+      address: address ?? null,
+      bankAccounts: [],
+      pixKey: undefined,
+      createdAt: ong.user?.createdAt || null,
+      updatedAt: ong.user?.updatedAt || null,
     };
   }
 
