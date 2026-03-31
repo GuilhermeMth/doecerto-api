@@ -78,6 +78,10 @@ export class DonorProfilesService {
    * Busca os detalhes completos de um perfil, retornando null se não existir
    * @param userId ID do doador/usuário
    */
+  async findMyProfile(userId: number) {
+    return this.findOne(userId);
+  }
+
   async findOne(userId: number) {
     const profile = await this.prisma.donorProfile.findUnique({
       where: { donorId: userId },
@@ -91,6 +95,10 @@ export class DonorProfilesService {
    * Busca os detalhes completos de um perfil, lançando erro se não existir
    * @param userId ID do doador/usuário
    */
+  async findPublicProfileOrThrow(userId: number) {
+    return this.findOneOrThrow(userId);
+  }
+
   async findOneOrThrow(userId: number) {
     const profile = await this.findOne(userId);
 

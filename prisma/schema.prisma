@@ -106,8 +106,8 @@ model OngProfile {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  ongId         Int      @unique
-  ong           Ong      @relation(fields: [ongId], references: [userId], onDelete: Cascade)
+  ongId         Int?     @unique
+  ong           Ong?     @relation(fields: [ongId], references: [userId], onDelete: Cascade)
 
   @@map("ong_profiles")
 }

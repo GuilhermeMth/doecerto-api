@@ -90,7 +90,7 @@ export class OngProfilesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ong')
   async findMyProfile(@CurrentUser() user: User) {
-    return this.ongProfilesService.findOne(Number(user.id));
+    return this.ongProfilesService.findMyProfile(Number(user.id));
   }
 
   /**
@@ -98,6 +98,6 @@ export class OngProfilesController {
    */
   @Get(':ongId/profile')
   async findOne(@Param('ongId', ParseIntPipe) ongId: number) {
-    return this.ongProfilesService.findOne(ongId);
+    return this.ongProfilesService.findPublicProfile(ongId);
   }
 }

@@ -15,6 +15,11 @@ export class OngsBankAccountService {
     return ongProfile.id;
   }
 
+  private async getOptionalOngProfileIdByOngId(ongId: number): Promise<number | null> {
+    const ongProfile = await this.prisma.ongProfile.findFirst({ where: { ongId } });
+    return ongProfile?.id ?? null;
+  }
+
   async create(createOngsBankAccountDto: CreateOngsBankAccountDto, ongId: number) {
     const ongProfileId = await this.getOngProfileIdByOngId(ongId);
     const { bankName, agencyNumber, accountNumber, accountType, pixKey } = createOngsBankAccountDto;
@@ -34,7 +39,8 @@ export class OngsBankAccountService {
 
 
   async findAll(ongId: number) {
-    const ongProfileId = await this.getOngProfileIdByOngId(ongId);
+    const ongProfileId = await this.getOptionalOngProfileIdByOngId(ongId);
+    if (!ongProfileId) return [];
     return await this.prisma.ongBankAccount.findMany({
       where: { ongProfileId },
     });
@@ -42,7 +48,8 @@ export class OngsBankAccountService {
 
 
   async findOne(ongId: number) {
-    const ongProfileId = await this.getOngProfileIdByOngId(ongId);
+    const ongProfileId = await this.getOptionalOngProfileIdByOngId(ongId);
+    if (!ongProfileId) return null;
     return await this.prisma.ongBankAccount.findFirst({
       where: {
         ongProfileId,
@@ -54,7 +61,8 @@ export class OngsBankAccountService {
    * Retorna apenas dados seguros da conta bancária de uma ONG
    */
   async getPublicBankAccounts(ongId: number) {
-    const ongProfileId = await this.getOngProfileIdByOngId(ongId);
+    const ongProfileId = await this.getOptionalOngProfileIdByOngId(ongId);
+    if (!ongProfileId) return [];
     const accounts = await this.prisma.ongBankAccount.findMany({ where: { ongProfileId } });
     return accounts.map(account => ({
       bankName: account.bankName,

@@ -58,11 +58,11 @@ export class DonorProfilesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('donor')
   async getCurrentDonorProfile(@CurrentUser() user: User) {
-    return this.donorProfilesService.findOne(user.id);
+    return this.donorProfilesService.findMyProfile(user.id);
   }
 
   @Get(':donorId/profile')
   async findOne(@Param('donorId', ParseIntPipe) donorId: number) {
-    return this.donorProfilesService.findOneOrThrow(donorId);
+    return this.donorProfilesService.findPublicProfileOrThrow(donorId);
   }
 }

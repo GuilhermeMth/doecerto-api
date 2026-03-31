@@ -742,6 +742,8 @@ Similar ao GET `/donors/me/profile`
 
 Cria ou atualiza o perfil da ONG autenticada.
 
+⚠️ **IMPORTANTE:** O perfil da ONG é **OPCIONAL** e pode ser criado a qualquer momento após o registro.
+
 **Content-Type:** `multipart/form-data`
 
 **Form Fields:**
@@ -854,6 +856,9 @@ Obtém o perfil completo e público de uma ONG.
   "updatedAt": "2024-01-15T10:30:00Z"
 }
 ```
+
+**Erros Possíveis:**
+- `404 Not Found` - Quando a ONG ainda não criou o perfil (perfil é opcional)
 
 ---
 
