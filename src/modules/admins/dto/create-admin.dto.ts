@@ -9,6 +9,6 @@ export class CreateAdminDto {
   email: string;
 
   @IsNotEmpty()
-  @Length(6, 100)
+  @Length(8, 128)
   password: string;
 }

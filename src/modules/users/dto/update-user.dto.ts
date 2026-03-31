@@ -13,7 +13,9 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   email?: string;
 
   @IsOptional()
-  @Length(6, 100, { message: 'Password must be at least 6 characters' })
+  @Length(8, 128, {
+    message: 'Password must be between 8 and 128 characters',
+  })
   password?: string;
 
   @IsOptional()
