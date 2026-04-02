@@ -379,7 +379,7 @@ async function main() {
   
   const bankAccountSeeds = [
     {
-      profile: createdProfiles.find(p => p.ong.user.name === 'Instituto Viver Bem'),
+      profile: createdProfiles.find(p => p.ong?.user.name === 'Instituto Viver Bem'),
       bankName: 'Banco do Brasil',
       agencyNumber: '1234-5',
       accountNumber: '12345-6',
@@ -387,7 +387,7 @@ async function main() {
       pixKey: 'contato@viverbem.org.br',
     },
     {
-      profile: createdProfiles.find(p => p.ong.user.name === 'Fundação Amigos do Futuro'),
+      profile: createdProfiles.find(p => p.ong?.user.name === 'Fundação Amigos do Futuro'),
       bankName: 'Caixa Econômica Federal',
       agencyNumber: '5678-9',
       accountNumber: '56789-0',
@@ -395,7 +395,7 @@ async function main() {
       pixKey: 'admin@amigosdofuturo.org',
     },
     {
-      profile: createdProfiles.find(p => p.ong.user.name === 'Instituto Crescer'),
+      profile: createdProfiles.find(p => p.ong?.user.name === 'Instituto Crescer'),
       bankName: 'Itaú',
       agencyNumber: '9876-5',
       accountNumber: '98765-4',
@@ -403,7 +403,7 @@ async function main() {
       pixKey: 'admin@institutocrescer.org',
     },
     {
-      profile: createdProfiles.find(p => p.ong.user.name === 'Fundação Semear'),
+      profile: createdProfiles.find(p => p.ong?.user.name === 'Fundação Semear'),
       bankName: 'Santander',
       agencyNumber: '4321-0',
       accountNumber: '43210-9',
@@ -411,7 +411,7 @@ async function main() {
       pixKey: 'admin@fundacaosemear.org.br',
     },
     {
-      profile: createdProfiles.find(p => p.ong.user.name === 'Rede Solidária'),
+      profile: createdProfiles.find(p => p.ong?.user.name === 'Rede Solidária'),
       bankName: 'Bradesco',
       agencyNumber: '1357-9',
       accountNumber: '13579-8',
@@ -419,7 +419,7 @@ async function main() {
       pixKey: 'contato@redesolidaria.org',
     },
     {
-      profile: createdProfiles.find(p => p.ong.user.name === 'Instituto Vida Plena'),
+      profile: createdProfiles.find(p => p.ong?.user.name === 'Instituto Vida Plena'),
       bankName: 'Banco Itaú',
       agencyNumber: '2468-0',
       accountNumber: '24680-1',
@@ -427,7 +427,7 @@ async function main() {
       pixKey: 'contato@vidaplena.org',
     },
     {
-      profile: createdProfiles.find(p => p.ong.user.name === 'Criança Feliz'),
+      profile: createdProfiles.find(p => p.ong?.user.name === 'Criança Feliz'),
       bankName: 'Caixa Econômica',
       agencyNumber: '8642-0',
       accountNumber: '86420-1',
@@ -447,7 +447,7 @@ async function main() {
         pixKey: account.pixKey,
       },
     });
-    console.log(`✅ Bank account created for ${account.profile!.ong.user.name}`);
+    console.log(`✅ Bank account created for ${account.profile!.ong?.user.name}`);
   }
   console.log('');
 
