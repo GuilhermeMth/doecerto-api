@@ -4,6 +4,15 @@ import { unlink } from 'fs/promises';
 
 @Injectable()
 export class ImageProcessingService {
+  private clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    return String(error);
+  }
+
   /**
    * Converte caminho do servidor para caminho público padronizado
    */
@@ -38,14 +47,18 @@ export class ImageProcessingService {
       return this.getPublicPath(outputPath);
     } catch (error) {
       await unlink(filePath).catch(() => {});
-      throw new Error(`Failed to process image: ${error.message}`);
+      throw new Error(`Failed to process image: ${this.getErrorMessage(error)}`);
     }
   }
 
   /**
    * Processa imagem para banner: corta para 16:9, redimensiona e comprime
    */
-  async processBannerImage(filePath: string, width: number = 1920): Promise<string> {
+  async processBannerImage(
+    filePath: string,
+    width: number = 1920,
+    crop?: { x: number; y: number },
+  ): Promise<string> {
     try {
       const outputPath = filePath.replace(
         /\.(jpg|jpeg|png|webp)$/i,
@@ -55,10 +68,46 @@ export class ImageProcessingService {
       // Banner em proporção 16:9 (1920x1080)
       const height = Math.round(width * 9 / 16);
 
+      const metadata = await sharp(filePath).metadata();
+      const sourceWidth = metadata.width;
+      const sourceHeight = metadata.height;
+
+      if (!sourceWidth || !sourceHeight) {
+        throw new Error('Invalid source image dimensions');
+      }
+
+      const targetAspectRatio = 16 / 9;
+      const sourceAspectRatio = sourceWidth / sourceHeight;
+
+      let extractWidth: number;
+      let extractHeight: number;
+
+      if (sourceAspectRatio > targetAspectRatio) {
+        extractHeight = sourceHeight;
+        extractWidth = Math.round(sourceHeight * targetAspectRatio);
+      } else {
+        extractWidth = sourceWidth;
+        extractHeight = Math.round(sourceWidth / targetAspectRatio);
+      }
+
+      const focusX = this.clamp((crop?.x ?? 50) / 100, 0, 1);
+      const focusY = this.clamp((crop?.y ?? 50) / 100, 0, 1);
+
+      let left = Math.round(focusX * sourceWidth - extractWidth / 2);
+      let top = Math.round(focusY * sourceHeight - extractHeight / 2);
+
+      left = this.clamp(left, 0, sourceWidth - extractWidth);
+      top = this.clamp(top, 0, sourceHeight - extractHeight);
+
       await sharp(filePath)
+        .extract({
+          left,
+          top,
+          width: extractWidth,
+          height: extractHeight,
+        })
         .resize(width, height, {
           fit: 'cover',
-          position: 'center',
         })
         .jpeg({
           quality: 85,
@@ -71,7 +120,7 @@ export class ImageProcessingService {
       return this.getPublicPath(outputPath);
     } catch (error) {
       await unlink(filePath).catch(() => {});
-      throw new Error(`Failed to process banner image: ${error.message}`);
+      throw new Error(`Failed to process banner image: ${this.getErrorMessage(error)}`);
     }
   }
 
@@ -131,7 +180,7 @@ export class ImageProcessingService {
     } catch (error) {
       // Se falhar, remove o arquivo original
       await unlink(filePath).catch(() => {});
-      throw new Error(`Failed to process payment proof: ${error.message}`);
+      throw new Error(`Failed to process payment proof: ${this.getErrorMessage(error)}`);
     }
   }
 }

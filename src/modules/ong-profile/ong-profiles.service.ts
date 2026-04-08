@@ -60,7 +60,7 @@ export class OngProfilesService {
    * @param bannerPath Caminho da imagem de banner já processada pelo ImageProcessingService
    */
   async createOrUpdate(userId: number, dto: UpdateOngProfileDto, avatarPath?: string, bannerPath?: string) {
-    const { categoryIds, bankAccount, ...profileData } = dto;
+    const { categoryIds, bankAccount, bannerCropX, bannerCropY, ...profileData } = dto;
 
     // 1. Validar se a ONG (entidade principal) existe
     const ongExists = await this.prisma.ong.findUnique({

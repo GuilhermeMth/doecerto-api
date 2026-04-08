@@ -34,7 +34,12 @@ export class DonationsService {
       select: {
         userId: true,
         cpf: true,
-        user: { select: { id: true, name: true, email: true } }
+        user: { select: { id: true, name: true, email: true } },
+        profile: {
+          select: {
+            contactNumber: true
+          }
+        }
       }
     }
   } as const;

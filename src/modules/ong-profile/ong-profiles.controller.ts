@@ -74,6 +74,10 @@ export class OngProfilesController {
         bannerPath = await this.imageProcessingService.processBannerImage(
           files.banner[0].path,
           1920,
+          {
+            x: dto.bannerCropX ?? 50,
+            y: dto.bannerCropY ?? 50,
+          },
         );
       } catch (error) {
         throw new BadRequestException('Falha ao processar imagem do banner');
