@@ -6,9 +6,10 @@ import {
   IsNumber,
   IsInt,
   Min,
+  Max,
   MaxLength,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { CreateOngsBankAccountDto } from '../../ongs-bank-account/dto/create-ongs-bank-account.dto';
 /**
  * DTO para atualização de perfil da ONG.
@@ -87,4 +88,18 @@ export class UpdateOngProfileDto {
    */
   @IsOptional()
   bankAccount?: CreateOngsBankAccountDto;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'bannerCropX deve ser um número' })
+  @Min(0, { message: 'bannerCropX não pode ser menor que 0' })
+  @Max(100, { message: 'bannerCropX não pode ser maior que 100' })
+  bannerCropX?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'bannerCropY deve ser um número' })
+  @Min(0, { message: 'bannerCropY não pode ser menor que 0' })
+  @Max(100, { message: 'bannerCropY não pode ser maior que 100' })
+  bannerCropY?: number;
 }

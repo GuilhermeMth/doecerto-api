@@ -70,7 +70,7 @@ export class OngProfilesService {
     avatarPath?: string,
     bannerPath?: string,
   ) {
-    const { categoryIds, bankAccount, website, ...profileData } = dto;
+    const { categoryIds, bankAccount, website, bannerCropX, bannerCropY, ...profileData } = dto;
 
     const hasWebsiteField = Object.prototype.hasOwnProperty.call(
       dto,
