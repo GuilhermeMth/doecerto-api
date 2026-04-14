@@ -1,7 +1,7 @@
 export class DonorProfileResponseDto {
   id: number;
   donorId: number;
-  bio?: string;
+  description?: string;
   avatarUrl?: string;
   contactNumber?: string;
   address?: string;

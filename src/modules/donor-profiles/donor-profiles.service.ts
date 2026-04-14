@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateDonorProfileDto } from './dto/update-donor-profile.dto';
 
@@ -7,7 +11,7 @@ export class DonorProfilesService {
   private readonly profileSelect = {
     id: true,
     donorId: true,
-    bio: true,
+    description: true,
     avatarUrl: true,
     contactNumber: true,
     createdAt: true,
@@ -35,7 +39,11 @@ export class DonorProfilesService {
    * @param dto Dados de atualização vindos do Body
    * @param avatarPath Caminho da imagem já processada pelo ImageProcessingService
    */
-  async createOrUpdate(userId: number, dto: UpdateDonorProfileDto, avatarPath?: string) {
+  async createOrUpdate(
+    userId: number,
+    dto: UpdateDonorProfileDto,
+    avatarPath?: string,
+  ) {
     // 1. Validar se o doador (entidade principal) existe
     const donorExists = await this.prisma.donor.findUnique({
       where: { userId },

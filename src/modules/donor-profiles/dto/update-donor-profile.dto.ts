@@ -1,9 +1,4 @@
-import { 
-  IsOptional, 
-  IsString, 
-  IsUrl, 
-  MaxLength 
-} from 'class-validator';
+import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 
 /**
  * DTO para atualização de perfil do doador.
@@ -12,9 +7,9 @@ import {
  */
 export class UpdateDonorProfileDto {
   @IsOptional()
-  @IsString({ message: 'A bio deve ser um texto' })
-  @MaxLength(500, { message: 'A bio não pode exceder 500 caracteres' })
-  bio?: string;
+  @IsString({ message: 'A description deve ser um texto' })
+  @MaxLength(500, { message: 'A description não pode exceder 500 caracteres' })
+  description?: string;
 
   @IsOptional()
   @IsString({ message: 'O número de contato deve ser um texto' })

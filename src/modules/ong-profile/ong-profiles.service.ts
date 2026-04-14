@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateOngProfileDto } from './dto/update-ong-profile.dto';
 import { OngsBankAccountService } from 'src/modules/ongs-bank-account/ongs-bank-account.service';
+import { Prisma } from 'generated/prisma';
 
 @Injectable()
 export class OngProfilesService {
@@ -16,11 +21,12 @@ export class OngProfilesService {
   private readonly profileSelect = {
     id: true,
     ongId: true,
-    bio: true,
+    description: true,
+    yearsOfOperation: true,
     avatarUrl: true,
     bannerUrl: true,
     contactNumber: true,
-    websiteUrl: true,
+    websiteUrls: true,
     // Relacionamento Many-to-Many com Categorias (Causas)
     categories: {
       select: {
@@ -51,7 +57,6 @@ export class OngProfilesService {
     },
   } as const;
 
-
   /**
    * Cria ou atualiza o perfil da ONG (Upsert).
    * @param userId ID do usuário extraído do JWT (segurança contra IDOR)
@@ -59,8 +64,20 @@ export class OngProfilesService {
    * @param avatarPath Caminho da imagem de avatar já processada pelo ImageProcessingService
    * @param bannerPath Caminho da imagem de banner já processada pelo ImageProcessingService
    */
-  async createOrUpdate(userId: number, dto: UpdateOngProfileDto, avatarPath?: string, bannerPath?: string) {
-    const { categoryIds, bankAccount, ...profileData } = dto;
+  async createOrUpdate(
+    userId: number,
+    dto: UpdateOngProfileDto,
+    avatarPath?: string,
+    bannerPath?: string,
+  ) {
+    const { categoryIds, bankAccount, website, ...profileData } = dto;
+
+    const hasWebsiteField = Object.prototype.hasOwnProperty.call(
+      dto,
+      'website',
+    );
+    const websiteUrlsValue =
+      website && website.length > 0 ? website : Prisma.DbNull;
 
     // 1. Validar se a ONG (entidade principal) existe
     const ongExists = await this.prisma.ong.findUnique({
@@ -74,6 +91,7 @@ export class OngProfilesService {
     // 2. Preparar objeto de dados para atualização (Update)
     const updateData = {
       ...profileData,
+      ...(hasWebsiteField && { websiteUrls: websiteUrlsValue }),
       // Só sobrescreve as URLs se novas imagens foram enviadas
       ...(avatarPath && { avatarUrl: avatarPath }),
       ...(bannerPath && { bannerUrl: bannerPath }),
@@ -86,6 +104,7 @@ export class OngProfilesService {
     const createData = {
       ongId: userId,
       ...profileData,
+      websiteUrls: websiteUrlsValue,
       avatarUrl: avatarPath || null,
       bannerUrl: bannerPath || null,
       categories: {
@@ -166,9 +185,13 @@ export class OngProfilesService {
     const address = await this.getOngAddress(profile.ong?.address);
 
     // Busca dados públicos da conta bancária de forma assíncrona
-    const bankAccounts = await this.ongsBankAccountService.getPublicBankAccounts(userId);
+    const bankAccounts =
+      await this.ongsBankAccountService.getPublicBankAccounts(userId);
     // Se houver apenas uma conta, adiciona pixKey no root do perfil para facilitar acesso rápido
-    const pixKey = Array.isArray(bankAccounts) && bankAccounts.length === 1 ? bankAccounts[0].pixKey : undefined;
+    const pixKey =
+      Array.isArray(bankAccounts) && bankAccounts.length === 1
+        ? bankAccounts[0].pixKey
+        : undefined;
     // Retorna perfil + dados bancários
     return {
       ...this.cleanProfileResponse(profile, receivedDonations, address),
@@ -221,9 +244,10 @@ export class OngProfilesService {
       email: ong.user?.email || null,
       avatarUrl: null,
       bannerUrl: null,
-      about: null,
+      description: null,
+      yearsOfOperation: null,
       contactNumber: null,
-      websiteUrl: null,
+      website: [],
       receivedDonations,
       rating: {
         average: ong.averageRating || 0,
@@ -268,7 +292,18 @@ export class OngProfilesService {
         latitude = null,
         longitude = null,
       } = rawAddress;
-      return { street, number, complement, neighborhood, city, state, zipCode, country, latitude, longitude };
+      return {
+        street,
+        number,
+        complement,
+        neighborhood,
+        city,
+        state,
+        zipCode,
+        country,
+        latitude,
+        longitude,
+      };
     }
     // Se só tem id, busca do banco
     if ('id' in rawAddress && rawAddress.id) {
@@ -308,37 +343,62 @@ export class OngProfilesService {
       country: string;
       latitude: number | null;
       longitude: number | null;
-    } | null
+    } | null,
   ) {
     if (!profile) return null;
     const {
       ongId,
-      bio,
+      description,
+      yearsOfOperation,
       avatarUrl,
       bannerUrl,
       contactNumber,
-      websiteUrl,
+      websiteUrls,
       categories,
       ong,
     } = profile;
+
+    const website = this.normalizeWebsiteUrls(websiteUrls);
+
     return {
       id: ongId,
       name: ong?.user?.name || null,
       email: ong?.user?.email || null,
       avatarUrl: avatarUrl || null,
       bannerUrl: bannerUrl || null,
-      about: bio || null,
+      description: description || null,
+      yearsOfOperation: yearsOfOperation ?? null,
       contactNumber: contactNumber || null,
-      websiteUrl: websiteUrl || null,
+      website,
       receivedDonations,
       rating: {
         average: ong?.averageRating || 0,
         count: ong?.numberOfRatings || 0,
       },
-      categories: categories?.map((c: any) => ({ id: c.id, name: c.name })) || [],
+      categories:
+        categories?.map((c: any) => ({ id: c.id, name: c.name })) || [],
       address: address ?? null,
       createdAt: ong?.user?.createdAt || null,
       updatedAt: ong?.user?.updatedAt || null,
     };
+  }
+
+  private normalizeWebsiteUrls(
+    value: Prisma.JsonValue | null | undefined,
+  ): string[] {
+    if (!value) return [];
+
+    if (Array.isArray(value)) {
+      return value.filter(
+        (item): item is string =>
+          typeof item === 'string' && item.trim().length > 0,
+      );
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return [value];
+    }
+
+    return [];
   }
 }

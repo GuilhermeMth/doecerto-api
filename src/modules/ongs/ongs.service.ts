@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaClient } from 'generated/prisma';
 import { ConfigService } from '@nestjs/config';
@@ -215,16 +219,13 @@ export class OngsService {
       where: {
         verificationStatus: 'verified',
         address: {
-          AND: [
-            { latitude: { not: null } },
-            { longitude: { not: null } },
-          ],
+          AND: [{ latitude: { not: null } }, { longitude: { not: null } }],
         },
       },
       include: {
         user: { select: { id: true, name: true } },
         profile: {
-          select: { avatarUrl: true, bio: true, bannerUrl: true },
+          select: { avatarUrl: true, description: true, bannerUrl: true },
         },
         address: {
           select: {
@@ -267,7 +268,7 @@ export class OngsService {
         name: ong.user.name,
         avatarUrl: ong.profile?.avatarUrl || null,
         bannerUrl: ong.profile?.bannerUrl || null,
-        bio: ong.profile?.bio || null,
+        description: ong.profile?.description || null,
         averageRating: ong.averageRating || 0,
         numberOfRatings: ong.numberOfRatings || 0,
         distance: Math.round(distance * 100) / 100,
