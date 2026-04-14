@@ -3,25 +3,33 @@ import { Transform } from 'class-transformer';
 
 export class GetNearbyOngDto {
   @IsNumber()
-  @Transform(({ value }) => (typeof value === 'string' ? parseFloat(value) : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? parseFloat(value) : value,
+  )
   latitude: number;
 
   @IsNumber()
-  @Transform(({ value }) => (typeof value === 'string' ? parseFloat(value) : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? parseFloat(value) : value,
+  )
   longitude: number;
 
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(100)
-  @Transform(({ value }) => (typeof value === 'string' ? parseInt(value, 10) : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? parseInt(value, 10) : value,
+  )
   skip?: number;
 
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(100)
-  @Transform(({ value }) => (typeof value === 'string' ? parseInt(value, 10) : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? parseInt(value, 10) : value,
+  )
   take?: number;
 }
 
@@ -31,7 +39,7 @@ export class NearbyOngResponseDto {
   name: string;
   avatarUrl: string | null;
   bannerUrl: string | null;
-  bio: string | null;
+  description: string | null;
   averageRating: number;
   numberOfRatings: number;
   distance: number; // em km

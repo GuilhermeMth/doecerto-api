@@ -30,14 +30,14 @@
 
 ## Legenda de Autorização
 
-| Símbolo | Significado | Descrição |
-|---------|-----------|-----------|
-| 🔓 | **Public** | Sem autenticação obrigatória |
-| 🔒 | **Authenticated** | Requer JWT válido |
-| 👤 | **Donor Only** | Apenas doadores |
-| 🏢 | **ONG Only** | Apenas ONGs |
-| 👑 | **Admin Only** | Apenas administradores |
-| 🔑 | **Self or Admin** | Próprio usuário ou administrador |
+| Símbolo | Significado       | Descrição                        |
+| ------- | ----------------- | -------------------------------- |
+| 🔓      | **Public**        | Sem autenticação obrigatória     |
+| 🔒      | **Authenticated** | Requer JWT válido                |
+| 👤      | **Donor Only**    | Apenas doadores                  |
+| 🏢      | **ONG Only**      | Apenas ONGs                      |
+| 👑      | **Admin Only**    | Apenas administradores           |
+| 🔑      | **Self or Admin** | Próprio usuário ou administrador |
 
 ---
 
@@ -48,6 +48,7 @@
 Autentica um usuário existente.
 
 **Request Body:**
+
 ```json
 {
   "email": "usuario@example.com",
@@ -56,6 +57,7 @@ Autentica um usuário existente.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Login successful",
@@ -70,6 +72,7 @@ Autentica um usuário existente.
 ```
 
 **Erros Possíveis:**
+
 - `401 Unauthorized` - Email ou senha inválidos
 
 ---
@@ -79,6 +82,7 @@ Autentica um usuário existente.
 Registra um novo doador.
 
 **Request Body:**
+
 ```json
 {
   "name": "João Silva",
@@ -89,6 +93,7 @@ Registra um novo doador.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "message": "Donor registered successfully",
@@ -107,11 +112,13 @@ Registra um novo doador.
 ```
 
 **Validações:**
+
 - CPF deve ser válido (formato: 000.000.000-00)
 - Email deve ser único
 - Senha mínimo 8 e máximo 128 caracteres
 
 **Erros Possíveis:**
+
 - `409 Conflict` - Email ou CPF já registrado
 - `400 Bad Request` - CPF ou email inválidos
 
@@ -122,6 +129,7 @@ Registra um novo doador.
 Registra uma nova ONG.
 
 **Request Body:**
+
 ```json
 {
   "name": "ONG Esperança",
@@ -132,6 +140,7 @@ Registra uma nova ONG.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "message": "ONG registered successfully",
@@ -151,11 +160,13 @@ Registra uma nova ONG.
 ```
 
 **Validações:**
+
 - CNPJ deve ser válido (formato: 00.000.000/0000-00)
 - Email deve ser único
 - Senha mínimo 8 e máximo 128 caracteres
 
 **Erros Possíveis:**
+
 - `409 Conflict` - Email ou CNPJ já registrado
 - `400 Bad Request` - CNPJ ou email inválidos
 
@@ -166,6 +177,7 @@ Registra uma nova ONG.
 Realiza logout do usuário autenticado.
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Logout successful"
@@ -179,6 +191,7 @@ Realiza logout do usuário autenticado.
 Solicita link de recuperação de senha.
 
 **Request Body:**
+
 ```json
 {
   "email": "usuario@example.com"
@@ -186,6 +199,7 @@ Solicita link de recuperação de senha.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Se o email existir na plataforma, um link de recuperação será enviado"
@@ -201,6 +215,7 @@ Solicita link de recuperação de senha.
 Valida um token de reset de senha.
 
 **Request Body:**
+
 ```json
 {
   "token": "token_hash_aqui"
@@ -208,6 +223,7 @@ Valida um token de reset de senha.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "valid": true
@@ -221,6 +237,7 @@ Valida um token de reset de senha.
 Redefine a senha usando um token válido.
 
 **Request Body:**
+
 ```json
 {
   "token": "token_hash_aqui",
@@ -229,6 +246,7 @@ Redefine a senha usando um token válido.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "message": "Senha atualizada com sucesso"
@@ -236,9 +254,11 @@ Redefine a senha usando um token válido.
 ```
 
 **Validações:**
+
 - Nova senha mínimo 8 e máximo 128 caracteres
 
 **Erros Possíveis:**
+
 - `400 Bad Request` - Token inválido ou expirado
 
 ---
@@ -250,6 +270,7 @@ Redefine a senha usando um token válido.
 Cria um novo usuário diretamente (uso administrativo).
 
 **Request Body:**
+
 ```json
 {
   "name": "Admin User",
@@ -260,6 +281,7 @@ Cria um novo usuário diretamente (uso administrativo).
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 1,
@@ -278,10 +300,12 @@ Cria um novo usuário diretamente (uso administrativo).
 Lista todos os usuários (com paginação).
 
 **Query Parameters:**
+
 - `skip` (int, default: 0) - Número de registros a pular
 - `take` (int, default: 20, máx: 100) - Quantidade de registros
 
 **Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -310,6 +334,7 @@ Lista todos os usuários (com paginação).
 Obtém dados do usuário autenticado.
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 1,
@@ -328,6 +353,7 @@ Obtém dados do usuário autenticado.
 Obtém dados de um usuário específico.
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 5,
@@ -346,6 +372,7 @@ Obtém dados de um usuário específico.
 Atualiza dados do usuário autenticado.
 
 **Request Body:**
+
 ```json
 {
   "name": "João Silva Atualizado",
@@ -354,6 +381,7 @@ Atualiza dados do usuário autenticado.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 1,
@@ -372,6 +400,7 @@ Atualiza dados do usuário autenticado.
 Atualiza dados de um usuário específico (admin).
 
 **Request Body:**
+
 ```json
 {
   "name": "Nome Atualizado",
@@ -399,6 +428,7 @@ Deleta um usuário.
 Cria um novo doador (geralmente via `POST /auth/register/donor`).
 
 **Request Body:**
+
 ```json
 {
   "name": "João Silva",
@@ -409,6 +439,7 @@ Cria um novo doador (geralmente via `POST /auth/register/donor`).
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "userId": 1,
@@ -428,10 +459,12 @@ Cria um novo doador (geralmente via `POST /auth/register/donor`).
 Lista todos os doadores.
 
 **Query Parameters:**
+
 - `skip` (int, default: 0)
 - `take` (int, default: 20, máx: 100)
 
 **Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -461,6 +494,7 @@ Lista todos os doadores.
 Obtém dados de um doador específico.
 
 **Response (200 OK):**
+
 ```json
 {
   "userId": 1,
@@ -480,6 +514,7 @@ Obtém dados de um doador específico.
 Atualiza dados do doador autenticado.
 
 **Request Body:**
+
 ```json
 {
   "cpf": "987.654.321-00"
@@ -487,6 +522,7 @@ Atualiza dados do doador autenticado.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "userId": 1,
@@ -516,6 +552,7 @@ Deleta um doador.
 Cria uma nova ONG (geralmente via `POST /auth/register/ong`).
 
 **Request Body:**
+
 ```json
 {
   "name": "ONG Esperança",
@@ -526,6 +563,7 @@ Cria uma nova ONG (geralmente via `POST /auth/register/ong`).
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "userId": 2,
@@ -546,10 +584,12 @@ Cria uma nova ONG (geralmente via `POST /auth/register/ong`).
 Lista todas as ONGs (paginado).
 
 **Query Parameters:**
+
 - `skip` (int, default: 0)
 - `take` (int, default: 20, máx: 100)
 
 **Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -581,6 +621,7 @@ Lista todas as ONGs (paginado).
 Obtém dados de uma ONG específica.
 
 **Response (200 OK):**
+
 ```json
 {
   "userId": 2,
@@ -602,10 +643,12 @@ Obtém dados de uma ONG específica.
 Lista ONGs verificadas dentro de 10km da localização do usuário.
 
 **Pré-requisitos:**
+
 - Usuário autenticado
 - Usuário deve ter endereço com latitude e longitude configurados
 
 **Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -615,7 +658,7 @@ Lista ONGs verificadas dentro de 10km da localização do usuário.
       "name": "ONG Esperança",
       "avatarUrl": "/uploads/profiles/ong-esperanca.jpg",
       "bannerUrl": "/uploads/profiles/ong-esperanca-banner.jpg",
-      "bio": "Dedicada à educação infantil",
+      "description": "Dedicada à educação infantil",
       "averageRating": 4.5,
       "numberOfRatings": 10,
       "distance": 2.35,
@@ -639,6 +682,7 @@ Lista ONGs verificadas dentro de 10km da localização do usuário.
 ```
 
 **Erros Possíveis:**
+
 - `400 Bad Request` - Usuário sem endereço com localização
 
 ---
@@ -648,6 +692,7 @@ Lista ONGs verificadas dentro de 10km da localização do usuário.
 Atualiza dados da ONG autenticada.
 
 **Request Body:**
+
 ```json
 {
   "cnpj": "98.765.432/0001-10"
@@ -655,6 +700,7 @@ Atualiza dados da ONG autenticada.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "userId": 2,
@@ -690,16 +736,18 @@ Cria ou atualiza o perfil do doador autenticado.
 **Content-Type:** `multipart/form-data`
 
 **Form Fields:**
+
 - `file` (file, opcional) - Imagem de avatar
-- `bio` (string, max 500 caracteres, opcional)
+- `description` (string, max 500 caracteres, opcional)
 - `contactNumber` (string, max 20 caracteres, opcional)
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 1,
   "donorId": 1,
-  "bio": "Apaixonado por causas sociais",
+  "description": "Apaixonado por causas sociais",
   "avatarUrl": "/uploads/profiles/avatar-12345.jpg",
   "contactNumber": "(11) 9 9999-8888",
   "createdAt": "2024-01-15T10:30:00Z",
@@ -737,6 +785,7 @@ Obtém o perfil público de um doador.
 Similar ao GET `/donors/me/profile`
 
 **Erros Possíveis:**
+
 - `404 Not Found` - Quando o doador não tem um perfil criado (perfil é opcional)
 
 ---
@@ -750,36 +799,47 @@ Cria ou atualiza o perfil da ONG autenticada.
 **Content-Type:** `multipart/form-data`
 
 **Form Fields:**
+
 - `avatar` (file, opcional) - Imagem do avatar (512x512)
 - `banner` (file, opcional) - Imagem do banner (1920x1080)
-- `bio` (string, max 500 caracteres, opcional)
+- `description` (string, max 500 caracteres, opcional)
+- `yearsOfOperation` (integer, opcional)
 - `contactNumber` (string, max 20 caracteres, opcional)
-- `websiteUrl` (string, max 255 caracteres, opcional)
+- `website` (string ou string[], opcional) - Uma ou várias URLs
 - `categoryIds[]` (integer array, opcional) - IDs das categorias
 - `bankAccount` (JSON object, opcional) - Dados da conta bancária
 
 **Exemplo com cURL:**
+
 ```bash
 curl -X POST http://localhost:3001/ongs/me/profile \
   -H "Authorization: Bearer TOKEN" \
   -F "avatar=@avatar.jpg" \
   -F "banner=@banner.jpg" \
-  -F "bio=ONG dedicada à educação" \
+  -F "description=ONG dedicada à educação" \
+  -F "yearsOfOperation=12" \
+  -F "website=https://ongesperanca.com.br" \
+  -F "website=https://parceiro.ongesperanca.com.br" \
   -F "contactNumber=(11) 98765-4321" \
   -F "categoryIds=1" \
   -F "categoryIds=2"
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 1,
   "ongId": 2,
-  "bio": "ONG dedicada à educação",
+  "description": "ONG dedicada à educação",
+  "yearsOfOperation": 12,
   "avatarUrl": "/uploads/profiles/avatar-12345.jpg",
   "bannerUrl": "/uploads/profiles/banner-12345.jpg",
   "contactNumber": "(11) 98765-4321",
-  "websiteUrl": "https://ongesperanca.com.br",
+  "website": [
+    "https://ongesperanca.com.br",
+    "https://parceiro.ongesperanca.com.br"
+  ],
   "categories": [
     {
       "id": 1,
@@ -811,6 +871,7 @@ curl -X POST http://localhost:3001/ongs/me/profile \
 Obtém o perfil completo e público de uma ONG.
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 2,
@@ -818,9 +879,13 @@ Obtém o perfil completo e público de uma ONG.
   "email": "contato@ongesperanca.com",
   "avatarUrl": "/uploads/profiles/avatar-12345.jpg",
   "bannerUrl": "/uploads/profiles/banner-12345.jpg",
-  "about": "ONG dedicada à educação infantil",
+  "description": "ONG dedicada à educação infantil",
+  "yearsOfOperation": 12,
   "contactNumber": "(11) 98765-4321",
-  "websiteUrl": "https://ongesperanca.com.br",
+  "website": [
+    "https://ongesperanca.com.br",
+    "https://parceiro.ongesperanca.com.br"
+  ],
   "receivedDonations": 45,
   "rating": {
     "average": 4.5,
@@ -861,6 +926,7 @@ Obtém o perfil completo e público de uma ONG.
 ```
 
 **Erros Possíveis:**
+
 - `404 Not Found` - Quando a ONG ainda não criou o perfil (perfil é opcional)
 
 ---
@@ -874,20 +940,23 @@ Cria uma nova doação.
 **Content-Type:** `multipart/form-data` (se houver comprovante)
 
 **Form Fields:**
+
 - `proofFile` (file, opcional) - Comprovante de pagamento (JPG, PNG, PDF)
 - `createDonationDto` (JSON, obrigatório)
 
 **JSON Body (createDonationDto):**
+
 ```json
 {
   "ongId": 2,
   "donationType": "monetary",
-  "monetaryAmount": 150.50,
+  "monetaryAmount": 150.5,
   "monetaryCurrency": "BRL"
 }
 ```
 
 **Ou para material:**
+
 ```json
 {
   "ongId": 2,
@@ -898,12 +967,13 @@ Cria uma nova doação.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 1,
   "donationType": "monetary",
   "donationStatus": "pending",
-  "monetaryAmount": 150.50,
+  "monetaryAmount": 150.5,
   "monetaryCurrency": "BRL",
   "materialDescription": null,
   "materialQuantity": null,
@@ -933,11 +1003,13 @@ Cria uma nova doação.
 ```
 
 **Validações:**
+
 - ONG deve estar verificada (`verificationStatus: "verified"`)
 - ONG deve existir
 - Campos adequados ao tipo de doação
 
 **Erros Possíveis:**
+
 - `400 Bad Request` - ONG não verificada ou dados inválidos
 - `404 Not Found` - ONG não encontrada
 
@@ -948,10 +1020,12 @@ Cria uma nova doação.
 Lista todas as doações (paginado).
 
 **Query Parameters:**
+
 - `skip` (int, default: 0)
 - `take` (int, default: 20, máx: 100)
 
 **Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -982,6 +1056,7 @@ Lista todas as doações (paginado).
 Lista doações enviadas pelo doador autenticado.
 
 **Query Parameters:**
+
 - `type` (string, opcional) - Filtrar por tipo: `monetary` ou `material`
 - `skip` (int, default: 0)
 - `take` (int, default: 20, máx: 100)
@@ -996,6 +1071,7 @@ Similar ao GET `/donations`
 Lista doações recebidas pela ONG autenticada.
 
 **Query Parameters:**
+
 - `type` (string, opcional) - `monetary` ou `material`
 - `skip` (int, default: 0)
 - `take` (int, default: 20, máx: 100)
@@ -1010,6 +1086,7 @@ Similar ao GET `/donations`
 Obtém detalhes de uma doação específica.
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 1,
@@ -1035,11 +1112,13 @@ Obtém detalhes de uma doação específica.
 Atualiza uma doação.
 
 **Permissões:**
+
 - **Doador**: Pode atualizar descrição/quantidade de materiais pendentes, cancelar
 - **ONG**: Pode marcar como COMPLETED ou CANCELED
 - Doações monetárias: Apenas podem ser canceladas ou aceitas
 
 **Request Body:**
+
 ```json
 {
   "donationStatus": "completed",
@@ -1052,6 +1131,7 @@ Atualiza uma doação.
 Retorna doação atualizada
 
 **Validações:**
+
 - Doações COMPLETED/CANCELED não podem ser alteradas
 - Cada role tem permissões específicas
 
@@ -1090,6 +1170,7 @@ Cancela uma doação (apenas doadores).
 Cria uma nova categoria.
 
 **Request Body:**
+
 ```json
 {
   "name": "Educação"
@@ -1097,6 +1178,7 @@ Cria uma nova categoria.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 1,
@@ -1107,6 +1189,7 @@ Cria uma nova categoria.
 ```
 
 **Erros Possíveis:**
+
 - `409 Conflict` - Categoria com este nome já existe
 
 ---
@@ -1116,10 +1199,12 @@ Cria uma nova categoria.
 Lista todas as categorias (paginado, alfabético).
 
 **Query Parameters:**
+
 - `skip` (int, default: 0)
 - `take` (int, default: 10, máx: 100)
 
 **Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -1152,6 +1237,7 @@ Lista todas as categorias (paginado, alfabético).
 Obtém uma categoria específica.
 
 **Response (200 OK):**
+
 ```json
 {
   "id": 1,
@@ -1168,6 +1254,7 @@ Obtém uma categoria específica.
 Atualiza uma categoria.
 
 **Request Body:**
+
 ```json
 {
   "name": "Educação e Capacitação"
@@ -1196,6 +1283,7 @@ Cria ou atualiza a avaliação de uma ONG (apenas doadores).
 **Pré-requisito:** Doador deve ter doado para a ONG
 
 **Request Body:**
+
 ```json
 {
   "score": 5,
@@ -1204,6 +1292,7 @@ Cria ou atualiza a avaliação de uma ONG (apenas doadores).
 ```
 
 **Response (201 Created / 200 Updated):**
+
 ```json
 {
   "id": 1,
@@ -1217,10 +1306,12 @@ Cria ou atualiza a avaliação de uma ONG (apenas doadores).
 ```
 
 **Validações:**
+
 - Score entre 1 e 5
 - Doador deve ter realizado doação para a ONG
 
 **Erros Possíveis:**
+
 - `403 Forbidden` - Doador nunca doou para esta ONG
 - `404 Not Found` - ONG não encontrada
 
@@ -1231,10 +1322,12 @@ Cria ou atualiza a avaliação de uma ONG (apenas doadores).
 Lista todas as avaliações de uma ONG.
 
 **Query Parameters:**
+
 - `skip` (int, default: 0)
 - `take` (int, default: 20, máx: 100)
 
 **Response (200 OK):**
+
 ```json
 [
   {
@@ -1259,6 +1352,7 @@ Lista todas as avaliações de uma ONG.
 Cria um novo endereço. Geocodifica automaticamente se não houver coordenadas.
 
 **Request Body:**
+
 ```json
 {
   "street": "Rua das Flores",
@@ -1275,6 +1369,7 @@ Cria um novo endereço. Geocodifica automaticamente se não houver coordenadas.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 1,
@@ -1320,6 +1415,7 @@ Detalhes do endereço
 Atualiza um endereço e regeocodifica se necessário.
 
 **Request Body:**
+
 ```json
 {
   "city": "Rio de Janeiro"
@@ -1344,6 +1440,7 @@ Deleta um endereço.
 Geocodifica um endereço (retorna apenas coordenadas).
 
 **Request Body:**
+
 ```json
 {
   "street": "Rua das Flores",
@@ -1356,6 +1453,7 @@ Geocodifica um endereço (retorna apenas coordenadas).
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "latitude": -23.5505,
@@ -1372,6 +1470,7 @@ Geocodifica um endereço (retorna apenas coordenadas).
 Cria ou atualiza a conta bancária da ONG autenticada.
 
 **Request Body:**
+
 ```json
 {
   "bankName": "Banco do Brasil",
@@ -1383,6 +1482,7 @@ Cria ou atualiza a conta bancária da ONG autenticada.
 ```
 
 **Response (201 Created / 200 Updated):**
+
 ```json
 {
   "id": 1,
@@ -1413,6 +1513,7 @@ Array de contas bancárias
 Retorna dados seguros da(s) conta(s) bancária(s) de uma ONG (sem dados sensíveis).
 
 **Response (200 OK):**
+
 ```json
 [
   {
@@ -1432,6 +1533,7 @@ Retorna dados seguros da(s) conta(s) bancária(s) de uma ONG (sem dados sensíve
 Atualiza a conta bancária da ONG autenticada.
 
 **Request Body:**
+
 ```json
 {
   "pixKey": "novo.pix@ongesperanca.com.br"
@@ -1458,6 +1560,7 @@ Remove a conta bancária da ONG autenticada.
 Cria um item na lista de desejos da ONG.
 
 **Request Body:**
+
 ```json
 {
   "description": "Notebooks para aula de informática",
@@ -1466,6 +1569,7 @@ Cria um item na lista de desejos da ONG.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "id": 1,
@@ -1486,6 +1590,7 @@ Cria um item na lista de desejos da ONG.
 Lista todos os itens da wishlist de uma ONG.
 
 **Response (200 OK):**
+
 ```json
 [
   {
@@ -1515,6 +1620,7 @@ Item detalhado
 Atualiza um item da wishlist.
 
 **Request Body:**
+
 ```json
 {
   "description": "Notebooks (i7 ou superior)",
@@ -1526,6 +1632,7 @@ Atualiza um item da wishlist.
 Item atualizado
 
 **Validação:**
+
 - Apenas a ONG proprietária pode atualizar
 
 ---
@@ -1545,12 +1652,14 @@ Remove um item da wishlist.
 Busca ONGs verificadas organizadas em seções com ranking inteligente.
 
 **Query Parameters:**
+
 - `categoryIds` (string, opcional) - IDs separados por vírgula: `1,2,3`
 - `searchTerm` (string, opcional) - Termo de busca
 - `limit` (int, optional, default: 10) - Quantidade por seção
 - `offset` (int, optional, default: 0) - Paginação offset-based
 
 **Response sem searchTerm (200 OK):**
+
 ```json
 [
   {
@@ -1588,6 +1697,7 @@ Busca ONGs verificadas organizadas em seções com ranking inteligente.
 ```
 
 **Response com searchTerm (200 OK):**
+
 ```json
 {
   "title": "Resultados para \"educação\"",
@@ -1597,6 +1707,7 @@ Busca ONGs verificadas organizadas em seções com ranking inteligente.
 ```
 
 **Seções Retornadas (sem busca):**
+
 1. **Melhor Avaliadas** - Ordenadas por average rating descendente
 2. **Mais Recentes** - Ordenadas por data descendente
 3. **Próximas a Você** - Dentro de 10km da localização do usuário
@@ -1605,6 +1716,7 @@ Busca ONGs verificadas organizadas em seções com ranking inteligente.
 6. **Menos Doações Recebidas** - Por quantidade de doações (ascendente)
 
 **Ranking Inteligente:**
+
 - Quando `categoryIds` é fornecido, ONGs com mais correspondências aparecem primeiro
 - Campo `matchCount` mostra quantas categorias correspondem
 
@@ -1617,6 +1729,7 @@ Busca ONGs verificadas organizadas em seções com ranking inteligente.
 Cria um novo administrador.
 
 **Request Body:**
+
 ```json
 {
   "name": "Novo Admin",
@@ -1626,6 +1739,7 @@ Cria um novo administrador.
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "userId": 3,
@@ -1661,6 +1775,7 @@ Dados do admin
 Obtém estatísticas do admin autenticado.
 
 **Response (200 OK):**
+
 ```json
 {
   "adminId": 3,
@@ -1696,6 +1811,7 @@ Similar ao GET `/admins/me/stats`
 Lista ONGs pendentes de verificação.
 
 **Response (200 OK):**
+
 ```json
 [
   {
@@ -1746,6 +1862,7 @@ ONG atualizada com status `verified`
 Rejeita uma ONG (marca como `rejected`).
 
 **Request Body:**
+
 ```json
 {
   "reason": "Documentação incompleta"
@@ -1762,6 +1879,7 @@ ONG atualizada com status `rejected` e `rejectionReason`
 Obtém métricas gerais do dashboard.
 
 **Response (200 OK):**
+
 ```json
 {
   "topOngsByDonationCount": [
@@ -1803,26 +1921,26 @@ Obtém métricas gerais do dashboard.
 
 ## 2xx - Sucesso
 
-| Código | Significado |
-|--------|-----------|
-| **200** | OK - Requisição bem-sucedida |
-| **201** | Created - Recurso criado com sucesso |
+| Código  | Significado                                    |
+| ------- | ---------------------------------------------- |
+| **200** | OK - Requisição bem-sucedida                   |
+| **201** | Created - Recurso criado com sucesso           |
 | **204** | No Content - Operação bem-sucedida sem retorno |
 
 ## 4xx - Erro do Cliente
 
-| Código | Significado | Causas Comuns |
-|--------|-----------|--------------|
-| **400** | Bad Request | Dados inválidos, validação falhou, ONG não verificada |
-| **401** | Unauthorized | JWT inválido ou expirado, credenciais incorretas |
-| **403** | Forbidden | Permissão insuficiente, tentativa de acessar recurso de outro usuário |
-| **404** | Not Found | Recurso não encontrado |
-| **409** | Conflict | Email/CPF/CNPJ duplicado, categoria já existe |
+| Código  | Significado  | Causas Comuns                                                         |
+| ------- | ------------ | --------------------------------------------------------------------- |
+| **400** | Bad Request  | Dados inválidos, validação falhou, ONG não verificada                 |
+| **401** | Unauthorized | JWT inválido ou expirado, credenciais incorretas                      |
+| **403** | Forbidden    | Permissão insuficiente, tentativa de acessar recurso de outro usuário |
+| **404** | Not Found    | Recurso não encontrado                                                |
+| **409** | Conflict     | Email/CPF/CNPJ duplicado, categoria já existe                         |
 
 ## 5xx - Erro do Servidor
 
-| Código | Significado |
-|--------|-----------|
+| Código  | Significado                                          |
+| ------- | ---------------------------------------------------- |
 | **500** | Internal Server Error - Erro não tratado no servidor |
 
 ---
@@ -1832,6 +1950,7 @@ Obtém métricas gerais do dashboard.
 ## 1. Registro e Login
 
 ### Registrar como Doador
+
 ```bash
 curl -X POST http://localhost:3001/auth/register/donor \
   -H "Content-Type: application/json" \
@@ -1844,6 +1963,7 @@ curl -X POST http://localhost:3001/auth/register/donor \
 ```
 
 ### Login
+
 ```bash
 curl -X POST http://localhost:3001/auth/login \
   -H "Content-Type: application/json" \
@@ -1859,6 +1979,7 @@ curl -X POST http://localhost:3001/auth/login \
 ## 2. Criar e Gerenciar Doações
 
 ### Criar Doação Monetária
+
 ```bash
 curl -X POST http://localhost:3001/donations \
   -H "Content-Type: application/json" \
@@ -1872,6 +1993,7 @@ curl -X POST http://localhost:3001/donations \
 ```
 
 ### Criar Doação Material
+
 ```bash
 curl -X POST http://localhost:3001/donations \
   -H "Content-Type: application/json" \
@@ -1885,6 +2007,7 @@ curl -X POST http://localhost:3001/donations \
 ```
 
 ### Com Comprovante de Pagamento
+
 ```bash
 curl -X POST http://localhost:3001/donations \
   -F "proofFile=@comprovante.jpg" \
@@ -1898,12 +2021,14 @@ curl -X POST http://localhost:3001/donations \
 ```
 
 ### Listar Minhas Doações Enviadas
+
 ```bash
 curl -X GET "http://localhost:3001/donations/me/sent?skip=0&take=20" \
   -b cookies.txt
 ```
 
 ### Aceitar Doação (ONG)
+
 ```bash
 curl -X PATCH http://localhost:3001/donations/1/accept \
   -b cookies.txt
@@ -1914,37 +2039,34 @@ curl -X PATCH http://localhost:3001/donations/1/accept \
 ## 3. Perfis e Informações
 
 ### Atualizar Perfil do Doador
+
 ```bash
 curl -X POST http://localhost:3001/donors/me/profile \
   -F "file=@avatar.jpg" \
-  -F 'updateDonorProfileDto={
-    "bio": "Apaixonado por causas sociais",
-    "contactNumber": "(11) 9 9999-8888"
-  };type=application/json' \
+  -F "description=Apaixonado por causas sociais" \
+  -F "contactNumber=(11) 9 9999-8888" \
   -b cookies.txt
 ```
 
 ### Atualizar Perfil da ONG
+
 ```bash
 curl -X POST http://localhost:3001/ongs/me/profile \
   -F "avatar=@avatar.jpg" \
   -F "banner=@banner.jpg" \
-  -F 'updateOngProfileDto={
-    "bio": "ONG dedicada à educação",
-    "contactNumber": "(11) 98765-4321",
-    "categoryIds": [1, 2],
-    "bankAccount": {
-      "bankName": "Banco do Brasil",
-      "agencyNumber": "1234-5",
-      "accountNumber": "12345-6",
-      "accountType": "Corrente",
-      "pixKey": "contato@ong.com.br"
-    }
-  };type=application/json' \
+  -F "description=ONG dedicada à educação" \
+  -F "yearsOfOperation=12" \
+  -F "website=https://ong.com.br" \
+  -F "website=https://parceiro.ong.com.br" \
+  -F "contactNumber=(11) 98765-4321" \
+  -F "categoryIds=1" \
+  -F "categoryIds=2" \
+  -F 'bankAccount={"bankName":"Banco do Brasil","agencyNumber":"1234-5","accountNumber":"12345-6","accountType":"Corrente","pixKey":"contato@ong.com.br"};type=application/json' \
   -b cookies.txt
 ```
 
 ### Ver Perfil Público de ONG
+
 ```bash
 curl -X GET http://localhost:3001/ongs/2/profile
 ```
@@ -1954,6 +2076,7 @@ curl -X GET http://localhost:3001/ongs/2/profile
 ## 4. Wishlist e Categorias
 
 ### Adicionar Item à Wishlist
+
 ```bash
 curl -X POST http://localhost:3001/ongs/2/wishlist-items \
   -H "Content-Type: application/json" \
@@ -1965,11 +2088,13 @@ curl -X POST http://localhost:3001/ongs/2/wishlist-items \
 ```
 
 ### Ver Wishlist de ONG
+
 ```bash
 curl -X GET http://localhost:3001/ongs/2/wishlist-items
 ```
 
 ### Listar Categorias
+
 ```bash
 curl -X GET "http://localhost:3001/categories?skip=0&take=10"
 ```
@@ -1979,6 +2104,7 @@ curl -X GET "http://localhost:3001/categories?skip=0&take=10"
 ## 5. Avaliações
 
 ### Avaliar ONG
+
 ```bash
 curl -X POST http://localhost:3001/ongs/2/ratings \
   -H "Content-Type: application/json" \
@@ -1990,6 +2116,7 @@ curl -X POST http://localhost:3001/ongs/2/ratings \
 ```
 
 ### Ver Avaliações de ONG
+
 ```bash
 curl -X GET "http://localhost:3001/ongs/2/ratings?skip=0&take=10"
 ```
@@ -1999,6 +2126,7 @@ curl -X GET "http://localhost:3001/ongs/2/ratings?skip=0&take=10"
 ## 6. Endereços
 
 ### Criar Endereço
+
 ```bash
 curl -X POST http://localhost:3001/addresses \
   -H "Content-Type: application/json" \
@@ -2014,6 +2142,7 @@ curl -X POST http://localhost:3001/addresses \
 ```
 
 ### Geocodificar Endereço
+
 ```bash
 curl -X POST http://localhost:3001/addresses/geocode \
   -H "Content-Type: application/json" \
@@ -2031,18 +2160,21 @@ curl -X POST http://localhost:3001/addresses/geocode \
 ## 7. Catálogo
 
 ### Listar Catálogo Completo
+
 ```bash
 curl -X GET http://localhost:3001/catalog \
   -b cookies.txt
 ```
 
 ### Filtrar por Categorias
+
 ```bash
 curl -X GET "http://localhost:3001/catalog?categoryIds=1,2,3" \
   -b cookies.txt
 ```
 
 ### Buscar no Catálogo
+
 ```bash
 curl -X GET "http://localhost:3001/catalog?searchTerm=educacao" \
   -b cookies.txt
@@ -2053,6 +2185,7 @@ curl -X GET "http://localhost:3001/catalog?searchTerm=educacao" \
 ## 8. ONGs Próximas
 
 ### Listar ONGs Próximas (10km)
+
 ```bash
 curl -X GET http://localhost:3001/ongs/nearby \
   -b cookies.txt
@@ -2063,18 +2196,21 @@ curl -X GET http://localhost:3001/ongs/nearby \
 ## 9. Administração
 
 ### Listar ONGs Pendentes
+
 ```bash
 curl -X GET http://localhost:3001/admins/ongs/status/pending \
   -b cookies.txt
 ```
 
 ### Aprovar ONG
+
 ```bash
 curl -X PATCH http://localhost:3001/admins/ongs/2/verification/approve \
   -b cookies.txt
 ```
 
 ### Rejeitar ONG
+
 ```bash
 curl -X PATCH http://localhost:3001/admins/ongs/2/verification/reject \
   -H "Content-Type: application/json" \
@@ -2083,6 +2219,7 @@ curl -X PATCH http://localhost:3001/admins/ongs/2/verification/reject \
 ```
 
 ### Ver Métricas
+
 ```bash
 curl -X GET http://localhost:3001/admins/metrics \
   -b cookies.txt
@@ -2093,6 +2230,7 @@ curl -X GET http://localhost:3001/admins/metrics \
 ## 10. Contas Bancárias
 
 ### Criar/Atualizar Conta Bancária
+
 ```bash
 curl -X POST http://localhost:3001/ongs/bank-account/me \
   -H "Content-Type: application/json" \
@@ -2107,6 +2245,7 @@ curl -X POST http://localhost:3001/ongs/bank-account/me \
 ```
 
 ### Ver Dados Bancários Públicos
+
 ```bash
 curl -X GET http://localhost:3001/ongs/bank-account/2
 ```
@@ -2120,6 +2259,7 @@ curl -X GET http://localhost:3001/ongs/bank-account/2
 O token JWT é armazenado automaticamente em cookie `access_token` após login/registro. Para requisições subsequentes, o token é enviado automaticamente.
 
 Você pode também enviar manualmente via header:
+
 ```bash
 curl -X GET http://localhost:3001/users/me \
   -H "Authorization: Bearer SEU_TOKEN_JWT"
@@ -2128,6 +2268,7 @@ curl -X GET http://localhost:3001/users/me \
 ## Upload de Arquivos
 
 Para requisições com upload, use `multipart/form-data`:
+
 - Avatar/Banner: JPG, PNG, WebP (máx 5-10MB)
 - Comprovante Pagamento: JPG, PNG, PDF (máx 5MB)
 - Imagens são processadas automaticamente (redimensionadas, comprimidas)
@@ -2135,6 +2276,7 @@ Para requisições com upload, use `multipart/form-data`:
 ## Paginação
 
 Todos os endpoints de listagem suportam:
+
 - `skip`: Registros a pular (padrão: 0)
 - `take`: Quantidade a retornar (padrão: 20, máx: 100)
 
@@ -2146,6 +2288,7 @@ Todos os endpoints de listagem suportam:
 ## Erros
 
 Todos os erros retornam JSON:
+
 ```json
 {
   "statusCode": 400,

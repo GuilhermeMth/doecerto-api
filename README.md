@@ -63,12 +63,12 @@ O **DoeCerto Backend** é uma API RESTful de alta performance que gerencia doaç
 
 ### Core Framework
 
-| Tecnologia | Versão | Função |
-|-----------|--------|--------|
-| **NestJS** | 11.1.8 | Framework Node.js progressivo e escalável |
-| **TypeScript** | 5.9.3 | Superset JavaScript com tipagem forte |
-| **Prisma** | 6.19.1 | ORM moderno com migrações automáticas |
-| **MySQL** | 8 | Banco de dados relacional |
+| Tecnologia     | Versão | Função                                    |
+| -------------- | ------ | ----------------------------------------- |
+| **NestJS**     | 11.1.8 | Framework Node.js progressivo e escalável |
+| **TypeScript** | 5.9.3  | Superset JavaScript com tipagem forte     |
+| **Prisma**     | 6.19.1 | ORM moderno com migrações automáticas     |
+| **MySQL**      | 8      | Banco de dados relacional                 |
 
 ### Autenticação & Segurança
 
@@ -137,6 +137,7 @@ npm install
 ```
 
 Ou com yarn:
+
 ```bash
 yarn install
 ```
@@ -217,6 +218,7 @@ docker-compose up -d
 ```
 
 Isso iniciará:
+
 - **MySQL 8** na porta 3309
 - **Redis 7** na porta 6479
 
@@ -259,6 +261,7 @@ npx prisma migrate dev
 ```
 
 Isso irá:
+
 - Criar todas as tabelas
 - Gerar o Prisma Client
 - Aplicar todas as migrations
@@ -272,6 +275,7 @@ npx prisma db seed
 ```
 
 Isto cria:
+
 - 5 administradores
 - 10 doadores
 - 15 ONGs (verificadas, pendentes, rejeitadas)
@@ -316,6 +320,7 @@ A documentação completa de todos os endpoints está em **[API_ENDPOINTS.md](./
 ### Endpoints Principais
 
 #### Autenticação
+
 - `POST /auth/login` - Login
 - `POST /auth/register/donor` - Registrar doador
 - `POST /auth/register/ong` - Registrar ONG
@@ -323,6 +328,7 @@ A documentação completa de todos os endpoints está em **[API_ENDPOINTS.md](./
 - `POST /auth/forgot-password` - Recuperar senha
 
 #### Doações
+
 - `POST /donations` - Criar doação
 - `GET /donations` - Listar todas
 - `GET /donations/me/sent` - Minhas doações (doador)
@@ -331,6 +337,7 @@ A documentação completa de todos os endpoints está em **[API_ENDPOINTS.md](./
 - `DELETE /donations/:id` - Cancelar doação
 
 #### ONGs
+
 - `GET /ongs` - Listar ONGs
 - `GET /ongs/:id` - Detalhes ONG
 - `GET /ongs/nearby` - ONGs próximas
@@ -338,9 +345,11 @@ A documentação completa de todos os endpoints está em **[API_ENDPOINTS.md](./
 - `GET /ongs/:id/profile` - Perfil público ONG
 
 #### Catálogo
+
 - `GET /catalog` - Busca inteligente com ranking
 
 #### Administração
+
 - `GET /admins/ongs/status/pending` - ONGs pendentes
 - `GET /admins/ongs/status/verified` - ONGs aprovadas
 - `PATCH /admins/ongs/:id/verification/approve` - Aprovar ONG
@@ -478,9 +487,10 @@ OU Doador cancela:
 POST /ongs/me/profile (multipart/form-data)
 ├─ avatar (opcional, JPG/PNG/WebP, max 5MB)
 ├─ banner (opcional, JPG/PNG/WebP, max 10MB)
-├─ bio (max 500 chars)
+├─ description (max 500 chars)
+├─ yearsOfOperation (inteiro >= 0)
 ├─ contactNumber (max 20 chars)
-├─ websiteUrl (URL válida)
+├─ website (1 ou várias URLs válidas)
 ├─ categoryIds (array de IDs)
 └─ bankAccount (JSON objeto, opcional)
     ↓
@@ -751,23 +761,27 @@ src/
 ### Implementações Presentes
 
 #### Autenticação
+
 - ✅ **Passwords** - Hash com bcrypt (10 salt rounds)
 - ✅ **JWT** - Tokens assinados com secret forte, expiração 24h
 - ✅ **Cookies** - httpOnly, secure em produção, sameSite: strict
 - ✅ **Stateless** - Permite escalabilidade horizontal
 
 #### Autorização
+
 - ✅ **RBAC** - Roles (admin, donor, ong) com Guards
 - ✅ **Verificação de Propriedade** - Usuários podem atualizar apenas dados próprios
 - ✅ **Validação em Camadas** - DTO → Service → Database
 
 #### Proteção de Dados
+
 - ✅ **SQL Injection** - Prisma ORM com prepared statements
 - ✅ **Constraints de BD** - Unique, foreign keys, not null
 - ✅ **Transações** - Operações críticas envolvidas
 - ✅ **Sanitização** - Remoção automática de campos extras
 
 #### API
+
 - ✅ **CORS** - Restrito à origem do frontend
 - ✅ **Validação de Email** - Formato e unicidade
 - ✅ **Validação de CPF/CNPJ** - Algoritmos brasileiros
@@ -858,6 +872,7 @@ docker-compose down -v
 **Causa:** Banco de dados não está rodando
 
 **Solução:**
+
 ```bash
 docker-compose up -d
 docker-compose ps  # Verificar se MySQL está healthy
@@ -868,6 +883,7 @@ docker-compose ps  # Verificar se MySQL está healthy
 **Causa:** Cliente Prisma não foi gerado
 
 **Solução:**
+
 ```bash
 npx prisma generate
 # Se persistir:
@@ -879,6 +895,7 @@ npx prisma generate
 ### Erro: "Port 3001 already in use"
 
 **Solução:**
+
 ```bash
 # Linux/Mac
 lsof -ti:3001 | xargs kill -9
@@ -893,6 +910,7 @@ Ou altere a porta no `.env`: `PORT=3002`
 ### Erro: "JWT malformed" ou "Unauthorized"
 
 **Solução:**
+
 1. Faça login novamente
 2. Verifique se `JWT_SECRET` no `.env` é consistente
 3. Limpe cookies do navegador
