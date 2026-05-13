@@ -7,6 +7,7 @@ import { CreateDonationDto, DonationType } from './dto/create-donation.dto';
 import { DonationStatus, UpdateDonationDto } from './dto/update-donation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'generated/prisma';
+import { CacheService } from 'src/cache/cache.service';
 
 @Injectable()
 export class DonationsService {
@@ -44,7 +45,10 @@ export class DonationsService {
     }
   } as const;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async create(createDonationDto: CreateDonationDto, donorId: number, proofOfPaymentUrl?: string) {
     const {
@@ -59,7 +63,7 @@ export class DonationsService {
     // Verify ONG exists
     await this.verifyOngExists(ongId);
 
-    return this.prisma.donation.create({
+    const donation = await this.prisma.donation.create({
       data: {
         donorId,
         ongId,
@@ -72,6 +76,10 @@ export class DonationsService {
       },
       select: this.donationSelect,
     });
+
+    await this.cacheService.delByPrefix('catalog:');
+
+    return donation;
   }
 
   async findAll(skip = 0, take = 20) {
@@ -218,11 +226,15 @@ export class DonationsService {
       return this.findOne(id);
     }
 
-    return this.prisma.donation.update({
+    const updatedDonation = await this.prisma.donation.update({
       where: { id },
       data: updateData,
       select: this.donationSelect,
     });
+
+    await this.cacheService.delByPrefix('catalog:');
+
+    return updatedDonation;
   }
 
   async remove(id: number, requesterId: number) {

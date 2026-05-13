@@ -1,12 +1,16 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RatingDto } from './dto/rating.dto';
+import { CacheService } from 'src/cache/cache.service';
 
 
 @Injectable()
 export class RatingsService {
 
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly cacheService: CacheService,
+    ) {}
 
     async rateOng(ratingDto: RatingDto, ongId: number, donorId: number) {
         const { score, comment } = ratingDto;
@@ -18,7 +22,7 @@ export class RatingsService {
         // Nota: Remova a chamada ao "alreadyRated" se quiser permitir a atualização,
         // pois agora o objetivo é permitir que ele sobrescreva a avaliação anterior.
 
-        return await this.prisma.$transaction(async (tx) => {
+        const rating = await this.prisma.$transaction(async (tx) => {
             // 2. Upsert: Cria ou Atualiza
             const rating = await tx.rating.upsert({
                 where: {
@@ -45,6 +49,10 @@ export class RatingsService {
 
             return rating;
         });
+
+        await this.cacheService.delByPrefix('catalog:');
+
+        return rating;
     }
 
     private async verifyOngExists(ongId: number) {

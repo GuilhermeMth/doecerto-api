@@ -23,7 +23,7 @@ import type { User } from 'generated/prisma';
 
 @Controller('addresses')
 export class AddressesController {
-  constructor(private readonly addressesService: AddressesService) {}
+  constructor(private readonly addressesService: AddressesService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -40,6 +40,13 @@ export class AddressesController {
   @HttpCode(HttpStatus.OK)
   async findAll(): Promise<AddressResponseDto[]> {
     return this.addressesService.findAll();
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('donor')
+  async findMyAddress(@CurrentUser() user: any) {
+    return this.addressesService.findByDonorId(user.id);
   }
 
   @Get(':id')

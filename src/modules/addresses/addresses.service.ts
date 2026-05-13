@@ -12,12 +12,14 @@ import { UpdateAddressDto } from './dto/update-address.dto';
 import { AddressResponseDto } from './dto/address-response.dto';
 import { GeocodeAddressDto } from './dto/geocode-address.dto';
 import type { User, Address as PrismaAddress } from 'generated/prisma';
+import { CacheService } from 'src/cache/cache.service';
 
 @Injectable()
 export class AddressesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly geocodingService: GeocodingService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -129,6 +131,8 @@ export class AddressesService {
       if (!address) {
         throw new InternalServerErrorException('Erro ao criar endereço');
       }
+
+      await this.cacheService.delByPrefix('catalog:');
 
       return this.mapToResponseDto(address);
     } catch (error) {
@@ -258,6 +262,8 @@ export class AddressesService {
         data: dataToUpdate,
       });
 
+      await this.cacheService.delByPrefix('catalog:');
+
       return this.mapToResponseDto(updatedAddress);
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -292,6 +298,8 @@ export class AddressesService {
     await this.prisma.address.delete({
       where: { id },
     });
+
+    await this.cacheService.delByPrefix('catalog:');
   }
 
   /**

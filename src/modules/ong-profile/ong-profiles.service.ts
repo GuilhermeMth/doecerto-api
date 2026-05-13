@@ -7,12 +7,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateOngProfileDto } from './dto/update-ong-profile.dto';
 import { OngsBankAccountService } from 'src/modules/ongs-bank-account/ongs-bank-account.service';
 import { Prisma } from 'generated/prisma';
+import { CacheService } from 'src/cache/cache.service';
 
 @Injectable()
 export class OngProfilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ongsBankAccountService: OngsBankAccountService,
+    private readonly cacheService: CacheService,
   ) {}
   /**
    * Centralizamos o select para garantir consistência em todos os métodos de busca.
@@ -120,6 +122,8 @@ export class OngProfilesService {
         update: updateData,
         select: this.profileSelect,
       });
+
+      await this.cacheService.delByPrefix('catalog:');
 
       // 5. Se vier dados de conta bancária, faz create/update da conta bancária
       if (bankAccount) {
