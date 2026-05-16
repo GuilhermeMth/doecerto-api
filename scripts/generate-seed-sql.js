@@ -8,18 +8,24 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcrypt');
 
-const PASSWORDS = {
-  admin: 'Admin@123456',
-};
+const seedAdminName = process.env.SEED_ADMIN_NAME && process.env.SEED_ADMIN_NAME.trim();
+const seedAdminEmail = process.env.SEED_ADMIN_EMAIL && process.env.SEED_ADMIN_EMAIL.trim();
+const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
 
 function generateSeedSQL() {
   console.log('🌱 Gerando SQL de seed...');
 
+  if (!seedAdminName || !seedAdminEmail || !seedAdminPassword) {
+    throw new Error(
+      'Missing admin seed environment variables. Set SEED_ADMIN_NAME, SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD.',
+    );
+  }
+
   // Hash das senhas - usando bcrypt sincronamente
-  const adminPasswordHash = bcrypt.hashSync(PASSWORDS.admin, 10);
+  const adminPasswordHash = bcrypt.hashSync(seedAdminPassword, 10);
 
   let sql = `-- Dados mockados gerados durante o build
--- Admin padrão para desenvolvimento/testes
+-- Admin gerado a partir de variáveis de ambiente
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -31,16 +37,13 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 `;
 
-  // Inserir admin mockado
-  const adminEmail = 'admin@doecerto.com';
-  const adminName = 'DoeCerto Admin';
-
-  sql += `-- Criar admin mockado
+  // Inserir admin gerado por ambiente
+  sql += `-- Criar admin a partir de variáveis de ambiente
 INSERT INTO users (name, email, password, role, createdAt, updatedAt) 
-VALUES ('${adminName}', '${adminEmail}', '${adminPasswordHash}', 'admin', NOW(), NOW());
+VALUES ('${seedAdminName}', '${seedAdminEmail}', '${adminPasswordHash}', 'admin', NOW(), NOW());
 
 INSERT INTO admins (userId, createdAt, updatedAt)
-SELECT id, NOW(), NOW() FROM users WHERE email = '${adminEmail}';
+SELECT id, NOW(), NOW() FROM users WHERE email = '${seedAdminEmail}';
 
 `;
 
@@ -50,7 +53,7 @@ SELECT id, NOW(), NOW() FROM users WHERE email = '${adminEmail}';
   try {
     fs.writeFileSync(outputPath, sql, 'utf8');
     console.log(`✅ SQL de seed gerado: ${outputPath}`);
-    console.log(`📊 Dados: 1 admin mockado`);
+    console.log(`📊 Dados: 1 admin via variáveis de ambiente`);
     return true;
   } catch (error) {
     console.error(`❌ Erro ao gerar SQL: ${error.message}`);

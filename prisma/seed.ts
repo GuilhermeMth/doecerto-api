@@ -5,10 +5,25 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 const PASSWORDS = {
-  admin: 'Admin@123456',
   donor: 'Donor@123456',
   ong: 'Ong@123456',
 };
+
+function requireSeedEnv(name: 'SEED_ADMIN_NAME' | 'SEED_ADMIN_EMAIL' | 'SEED_ADMIN_PASSWORD'): string {
+  const value = process.env[name]?.trim();
+
+  if (!value) {
+    throw new Error(
+      'Missing admin seed environment variables. Set SEED_ADMIN_NAME, SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD.',
+    );
+  }
+
+  return value;
+}
+
+const seedAdminName = requireSeedEnv('SEED_ADMIN_NAME');
+const seedAdminEmail = requireSeedEnv('SEED_ADMIN_EMAIL');
+const seedAdminPassword = requireSeedEnv('SEED_ADMIN_PASSWORD');
 
 async function main() {
   console.log('🌱 Starting database seed...\n');
@@ -29,35 +44,24 @@ async function main() {
   console.log('✅ Data cleaned\n');
 
   const [adminPassword, donorPassword, ongPassword] = await Promise.all([
-    bcrypt.hash(PASSWORDS.admin, 10),
+    bcrypt.hash(seedAdminPassword, 10),
     bcrypt.hash(PASSWORDS.donor, 10),
     bcrypt.hash(PASSWORDS.ong, 10),
   ]);
 
   // ==================== ADMINS ====================
   console.log('👑 Creating admins...');
-  const adminSeeds = [
-    { name: 'Ana Reviewer', email: 'ana.reviewer@sistema.com' },
-    { name: 'DoeCerto Admin', email: 'admin@doecerto.com' },
-    { name: 'Bruno Auditor', email: 'bruno.auditor@sistema.com' },
-    { name: 'Clara Supervisor', email: 'clara.supervisor@sistema.com' },
-    { name: 'Diego Verifier', email: 'diego.verifier@sistema.com' },
-  ];
-
-  const admins = [] as { userId: number; email: string }[];
-  for (const admin of adminSeeds) {
-    const user = await prisma.user.create({
-      data: {
-        name: admin.name,
-        email: admin.email,
-        password: adminPassword,
-        role: Role.admin,
-      },
-    });
-    await prisma.admin.create({ data: { userId: user.id } });
-    admins.push({ userId: user.id, email: admin.email });
-    console.log(`✅ Admin created: ${admin.email}`);
-  }
+  const user = await prisma.user.create({
+    data: {
+      name: seedAdminName,
+      email: seedAdminEmail,
+      password: adminPassword,
+      role: Role.admin,
+    },
+  });
+  await prisma.admin.create({ data: { userId: user.id } });
+  const admins = [{ userId: user.id, email: seedAdminEmail }];
+  console.log(`✅ Admin created: ${seedAdminEmail}`);
 
   // ==================== DOADORES ====================
   console.log('👤 Creating donors...');
@@ -642,7 +646,7 @@ async function main() {
   console.log(`✅ ${donationRecords.length} Donations created`);
   console.log(`✅ ${ratingsSeeds.length} Ratings created`);
   console.log('\n🔑 DEFAULT PASSWORDS (change in production!):');
-  console.log(`  Admin: ${PASSWORDS.admin}`);
+  console.log('  Admin: via SEED_ADMIN_PASSWORD');
   console.log(`  Donor: ${PASSWORDS.donor}`);
   console.log(`  ONG:   ${PASSWORDS.ong}`);
   console.log('='.repeat(50) + '\n');
