@@ -90,7 +90,7 @@ export class AddressesService {
           // Se a geocodificação falhar, continua sem coordenadas
           console.warn(
             'Aviso: Falha ao geocodificar endereço automaticamente',
-            error.message,
+            error instanceof Error ? error.message : error,
           );
         }
       }
@@ -136,11 +136,20 @@ export class AddressesService {
 
       return this.mapToResponseDto(address);
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      console.error('[CRITICAL DATABASE/SERVER ERROR]', error);
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
+
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+
       throw new InternalServerErrorException(
-        'Erro ao criar endereço',
+        `Erro interno no servidor: ${message}`,
       );
     }
   }
@@ -252,7 +261,7 @@ export class AddressesService {
         } catch (error) {
           console.warn(
             'Aviso: Falha ao regeocodificar endereço',
-            error.message,
+            error instanceof Error ? error.message : error,
           );
         }
       }
@@ -266,11 +275,20 @@ export class AddressesService {
 
       return this.mapToResponseDto(updatedAddress);
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      console.error('[CRITICAL DATABASE/SERVER ERROR]', error);
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ForbiddenException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
+
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+
       throw new InternalServerErrorException(
-        'Erro ao atualizar endereço',
+        `Erro interno no servidor: ${message}`,
       );
     }
   }
