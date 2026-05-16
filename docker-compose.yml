@@ -28,7 +28,19 @@ services:
       - app_network
 
   # --- CACHE (Redis) ---
-  # Redis service removed (caused deploy issues)
+  redis:
+    image: redis:7-alpine
+    container_name: doecerto_redis
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "6479:6379" # Acessível no seu PC via 6479
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - app_network
 
 networks:
   app_network:
@@ -36,4 +48,4 @@ networks:
 
 volumes:
   mysql_data:
-  # redis_data removed
+  redis_data:
