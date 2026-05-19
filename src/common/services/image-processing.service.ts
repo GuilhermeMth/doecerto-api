@@ -18,13 +18,18 @@ export class ImageProcessingService {
    */
   private getPublicPath(filePath: string): string {
     const uploadsIndex = filePath.indexOf('uploads/');
-    return uploadsIndex >= 0 ? '/' + filePath.slice(uploadsIndex) : '/' + filePath.replace(/^\.\/?/, '');
+    return uploadsIndex >= 0
+      ? '/' + filePath.slice(uploadsIndex)
+      : '/' + filePath.replace(/^\.\/?/, '');
   }
 
   /**
    * Processa imagem para avatar: corta para 1:1, redimensiona e comprime
    */
-  async processAvatarImage(filePath: string, size: number = 512): Promise<string> {
+  async processAvatarImage(
+    filePath: string,
+    size: number = 512,
+  ): Promise<string> {
     try {
       const outputPath = filePath.replace(
         /\.(jpg|jpeg|png|webp)$/i,
@@ -47,7 +52,9 @@ export class ImageProcessingService {
       return this.getPublicPath(outputPath);
     } catch (error) {
       await unlink(filePath).catch(() => {});
-      throw new Error(`Failed to process image: ${this.getErrorMessage(error)}`);
+      throw new Error(
+        `Failed to process image: ${this.getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -66,7 +73,7 @@ export class ImageProcessingService {
       );
 
       // Banner em proporção 16:9 (1920x1080)
-      const height = Math.round(width * 9 / 16);
+      const height = Math.round((width * 9) / 16);
 
       const metadata = await sharp(filePath).metadata();
       const sourceWidth = metadata.width;
@@ -120,7 +127,9 @@ export class ImageProcessingService {
       return this.getPublicPath(outputPath);
     } catch (error) {
       await unlink(filePath).catch(() => {});
-      throw new Error(`Failed to process banner image: ${this.getErrorMessage(error)}`);
+      throw new Error(
+        `Failed to process banner image: ${this.getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -140,7 +149,7 @@ export class ImageProcessingService {
       const tolerance = 0.05;
 
       return Math.abs(aspectRatio - 1) <= tolerance;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -180,7 +189,9 @@ export class ImageProcessingService {
     } catch (error) {
       // Se falhar, remove o arquivo original
       await unlink(filePath).catch(() => {});
-      throw new Error(`Failed to process payment proof: ${this.getErrorMessage(error)}`);
+      throw new Error(
+        `Failed to process payment proof: ${this.getErrorMessage(error)}`,
+      );
     }
   }
 }

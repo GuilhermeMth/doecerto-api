@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 @Injectable()
 export class MailerService {
   private readonly logger = new Logger(MailerService.name);
-  private transporter: nodemailer.Transporter;
+  private transporter?: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {
     this.initializeTransporter();
@@ -14,7 +14,8 @@ export class MailerService {
   private initializeTransporter(): void {
     const emailUser = this.configService.get<string>('EMAIL_USER');
     const emailPass = this.configService.get<string>('EMAIL_PASS');
-    const emailHost = this.configService.get<string>('EMAIL_HOST') || 'smtp.gmail.com';
+    const emailHost =
+      this.configService.get<string>('EMAIL_HOST') || 'smtp.gmail.com';
     const emailPort = this.configService.get<number>('EMAIL_PORT') || 587;
 
     if (!emailUser || !emailPass) {
@@ -40,12 +41,13 @@ export class MailerService {
     token: string,
     userName: string,
   ): Promise<void> {
-    const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    const appUrl =
+      this.configService.get<string>('APP_URL') || 'http://localhost:3000';
     const resetLink = `${appUrl}/reset-password?token=${token}`;
 
     // Log sempre o link para depuração (útil em DEV ou se SMTP falhar)
     this.logger.log(`[PASSWORD_RESET] target=${email} link=${resetLink}`);
-    
+
     const htmlContent = `
       <html>
         <body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
@@ -86,7 +88,8 @@ export class MailerService {
     `;
 
     const mailOptions = {
-      from: this.configService.get<string>('EMAIL_FROM') || 'noreply@doecerto.com',
+      from:
+        this.configService.get<string>('EMAIL_FROM') || 'noreply@doecerto.com',
       to: email,
       subject: 'Recuperação de Senha - DoeCerto',
       html: htmlContent,
@@ -95,21 +98,27 @@ export class MailerService {
 
     try {
       if (!this.transporter) {
-        this.logger.log(`[DEV MODE] Reset email para ${email}\nLink: ${resetLink}`);
+        this.logger.log(
+          `[DEV MODE] Reset email para ${email}\nLink: ${resetLink}`,
+        );
         return;
       }
 
       await this.transporter.sendMail(mailOptions);
       this.logger.log(`Password reset email sent to ${email}`);
     } catch (error) {
-      this.logger.error(`Failed to send password reset email to ${email}:`, error);
+      this.logger.error(
+        `Failed to send password reset email to ${email}:`,
+        error,
+      );
       throw error;
     }
   }
 
   async sendTestEmail(email: string): Promise<void> {
     const mailOptions = {
-      from: this.configService.get<string>('EMAIL_FROM') || 'noreply@doecerto.com',
+      from:
+        this.configService.get<string>('EMAIL_FROM') || 'noreply@doecerto.com',
       to: email,
       subject: 'Email de Teste - DoeCerto',
       html: '<p>Este é um email de teste do sistema DoeCerto</p>',

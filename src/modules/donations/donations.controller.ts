@@ -18,8 +18,10 @@ import {
   DefaultValuePipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiOkResponse } from '@nestjs/swagger';
 import type { User, DonationType } from 'generated/prisma';
 import { DonationsService } from './donations.service';
+import type { CreateDonationResult } from './donations.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { UpdateDonationDto } from './dto/update-donation.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
@@ -47,6 +49,13 @@ export class DonationsController {
     @CurrentUser() user: User,
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    // Se for doação monetária, exige comprovante
+    if (createDonationDto.donationType === 'monetary' && !file) {
+      throw new BadRequestException(
+        'proofFile is required for monetary donations',
+      );
+    }
+
     let proofPath: string | undefined;
 
     if (file) {
@@ -54,12 +63,20 @@ export class DonationsController {
         proofPath = await this.imageProcessingService.processPaymentProof(
           file.path,
         );
-      } catch (error) {
-        throw new BadRequestException('Falha ao processar comprovante de pagamento');
+      } catch {
+        throw new BadRequestException(
+          'Falha ao processar comprovante de pagamento',
+        );
       }
     }
 
-    return this.donationsService.create(createDonationDto, user.id, proofPath);
+    const result: CreateDonationResult = await this.donationsService.create(
+      createDonationDto,
+      user.id,
+      proofPath,
+    );
+
+    return result;
   }
 
   // ✅ PÚBLICO: Listar todas as doações (sem role)
@@ -127,6 +144,25 @@ export class DonationsController {
     return this.donationsService.findOne(id);
   }
 
+  // ✅ DOADOR: Gerar link do WhatsApp para uma doação material
+  @Roles('donor')
+  @Get(':id/whatsapp-link')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        whatsappLink: { type: 'string' },
+      },
+    },
+  })
+  getWhatsappLink(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: User,
+  ): Promise<{ whatsappLink: string }> {
+    return this.donationsService.generateWhatsappLink(id, user.id);
+  }
+
   // ✅ DOADOR/ONG: Atualizar doação
   @Roles('donor', 'ong')
   @Patch(':id')
@@ -174,5 +210,33 @@ export class DonationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: User) {
     return this.donationsService.remove(id, user.id);
+  }
+
+  // ✅ DOADOR: Upload de comprovante para doações monetárias (separado)
+  @Roles('donor')
+  @Post(':id/proof')
+  @UseInterceptors(FileInterceptor('proofFile', multerPaymentProofConfig))
+  async uploadProof(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: User,
+  ) {
+    if (!file) {
+      throw new BadRequestException('proofFile is required');
+    }
+
+    let proofPath: string;
+
+    try {
+      proofPath = await this.imageProcessingService.processPaymentProof(
+        file.path,
+      );
+    } catch {
+      throw new BadRequestException(
+        'Falha ao processar comprovante de pagamento',
+      );
+    }
+
+    return this.donationsService.addProof(id, proofPath, user.id);
   }
 }

@@ -6,47 +6,48 @@ import { join } from 'path';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 
-async function bootstrap() {
-  const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  const configService = app.get(ConfigService);
-  const prisma = app.get(PrismaService);
-
-  // ============================================
-  // CONFIGURAÇÃO DE CORS PARA WEB E MOBILE (CAPACITOR)
-  // ============================================
+function configureCors(
+  app: NestExpressApplication,
+  configService: ConfigService,
+  logger: Logger,
+) {
   const allowedOrigins = [
-    configService.get<string>('FRONTEND_URL'), // https://doecerto.eastus2.cloudapp.azure.com
-    'http://localhost:3000',                  // Web Local
-    'http://localhost',                       // Capacitor Android (Padrão)
-    'capacitor://localhost',                  // Capacitor iOS (Padrão)
-    'http://localhost:19006',                 // Expo Web
-    /^exp:\/\/.*$/,                           // Expo Go
-    /^http:\/\/192\.168\.\d+\.\d+:\d+$/,      // Rede Local (Dev)
-    /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/,       // Rede Local (Dev)
+    configService.get<string>('FRONTEND_URL'),
+    'http://localhost:3000',
+    'http://localhost:19006',
+    'http://localhost',
+    'capacitor://localhost',
   ].filter(Boolean);
+
+  const allowedOriginPatterns = [
+    /^exp:\/\/.*$/,
+    /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
+    /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/,
+  ];
+
+  const isAllowedOrigin = (origin: string) =>
+    allowedOrigins.includes(origin) ||
+    allowedOriginPatterns.some((pattern) => pattern.test(origin));
 
   app.enableCors({
     origin: (origin, callback) => {
-      // 1. Permitir requisições sem origin (comum em apps mobile nativos/testes Postman)
       if (!origin) {
         return callback(null, true);
       }
 
-      // 2. Verificar se a origem está na lista permitida
-      const isAllowed = allowedOrigins.some((allowed) => {
-        if (typeof allowed === 'string') return allowed === origin;
-        if (allowed instanceof RegExp) return allowed.test(origin);
-        return false;
-      });
-
-      if (isAllowed || configService.get('NODE_ENV') === 'development') {
+      if (
+        isAllowedOrigin(origin) ||
+        configService.get('NODE_ENV') === 'development'
+      ) {
         callback(null, true);
-      } else {
-        logger.warn(`🚫 CORS bloqueado para a origem: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
+
+      logger.warn(`CORS bloqueado para a origem: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
@@ -60,19 +61,39 @@ async function bootstrap() {
       'Access-Control-Request-Headers',
     ],
     exposedHeaders: ['Set-Cookie'],
-    maxAge: 86400, // Cache de preflight por 24 horas
+    maxAge: 86400,
   });
+}
 
-  // Middleware para Cookies
+function configureSwagger(app: NestExpressApplication) {
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('DoeCerto API')
+    .setDescription('Documentação da API do DoeCerto')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+
+  SwaggerModule.setup('api-docs', app, swaggerDocument);
+
+  app.use('/api-json', (_req: Request, res: Response) => {
+    res.json(swaggerDocument);
+  });
+}
+
+function configureMiddlewares(app: NestExpressApplication) {
   app.use(cookieParser());
+}
 
-  // Servir arquivos estáticos (Uploads)
+function configureStaticAssets(app: NestExpressApplication) {
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
     maxAge: '1d',
   });
+}
 
-  // Validação global de DTOs
+function configureValidation(app: NestExpressApplication) {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -83,35 +104,52 @@ async function bootstrap() {
       },
     }),
   );
+}
 
-  // Configuração de Porta e Bind
+async function ensureAdminUser(prisma: PrismaService, logger: Logger) {
+  const adminEmail = 'admin@example.com';
+  const adminPassword =
+    '$2b$10$oy5xDYIcNfswR5gQQxtaYedB9/Z1goXvbfGaL3P8rccQSn31gnPt2';
+
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail },
+  });
+
+  if (existingAdmin) {
+    return;
+  }
+
+  await prisma.user.create({
+    data: {
+      name: 'Admin User',
+      email: adminEmail,
+      password: adminPassword,
+      role: 'admin',
+    },
+  });
+
+  logger.log('Hardcoded admin account created.');
+}
+
+async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const configService = app.get(ConfigService);
+  const prisma = app.get(PrismaService);
+
+  configureCors(app, configService, logger);
+  configureMiddlewares(app);
+  configureSwagger(app);
+  configureStaticAssets(app);
+  configureValidation(app);
+
   const port = configService.get<number>('PORT') || 3501;
-  
-  // O bind '0.0.0.0' é essencial para o Azure e para acesso via IP na rede local
+
   await app.listen(port, '0.0.0.0');
 
   logger.log(`🚀 API rodando em: http://localhost:${port}`);
-  logger.log(`🌐 Ambiente: ${configService.get('NODE_ENV') || 'production'}`);
-  logger.log(`📱 Suporte para Capacitor (Android/iOS) e Web Azure habilitado`);
 
-  // Ensure hardcoded admin is registered in the database
-  const adminEmail = 'admin@example.com';
-  const adminPassword = '$2b$10$oy5xDYIcNfswR5gQQxtaYedB9/Z1goXvbfGaL3P8rccQSn31gnPt2'; // bcrypt hash for 'admin@2026'
-
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!existingAdmin) {
-    await prisma.user.create({
-      data: {
-        name: 'Admin User',
-        email: adminEmail,
-        password: adminPassword,
-        role: 'admin',
-      },
-    });
-    logger.log('🚀 Hardcoded admin account successfully created in the database.');
-  } else {
-    logger.log('Admin account already exists.');
-  }
+  await ensureAdminUser(prisma, logger);
 }
 
 void bootstrap();

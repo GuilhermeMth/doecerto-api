@@ -2,6 +2,13 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
+import type { Redis } from 'ioredis';
+
+interface CacheStore {
+  stores?: Array<{ opts?: { store?: { client?: Redis } }; client?: Redis }>;
+  client?: Redis;
+  opts?: { client?: Redis };
+}
 
 @Injectable()
 export class CacheService {
@@ -12,19 +19,19 @@ export class CacheService {
     private readonly configService: ConfigService,
   ) {}
 
-  private generateKey(filters: any, userId: number): string {
+  private generateKey(filters: object, userId: number): string {
     return `catalog:${userId}:${JSON.stringify(filters)}`;
   }
 
-  async get<T>(filters: any, userId: number): Promise<T | undefined> {
+  async get<T>(filters: object, userId: number): Promise<T | undefined> {
     const key = this.generateKey(filters, userId);
     return this.cacheManager.get<T>(key);
   }
 
-  async set(
-    filters: any,
+  async set<T>(
+    filters: object,
     userId: number,
-    value: any,
+    value: T,
     ttlSeconds: number,
   ): Promise<void> {
     const key = this.generateKey(filters, userId);
@@ -32,12 +39,9 @@ export class CacheService {
   }
 
   async delByPrefix(prefix: string): Promise<void> {
-    const store = (this.cacheManager as any).store;
-    const redisStore = store?.stores?.find((s: any) => s?.opts?.store?.client || s?.client);
-    const redis = redisStore?.opts?.store?.client || redisStore?.client;
+    const redis = this.getRedisClient();
 
     if (!redis) {
-      this.logger.warn('Redis client não encontrado para SCAN. Limpando cache global como fallback.');
       await this.cacheManager.clear();
       return;
     }
@@ -46,17 +50,34 @@ export class CacheService {
       const stream = redis.scanStream({
         match: `${prefix}*`,
         count: 100,
-      });
+      }) as AsyncIterable<string[]>;
 
       for await (const keys of stream) {
-        if (keys.length > 0) {
-          await redis.del(keys);
+        if (keys && keys.length > 0) {
+          await redis.del(...keys);
         }
       }
       this.logger.log(`🧹 Cache invalidado para o prefixo: ${prefix}`);
     } catch (error) {
       this.logger.error(`Erro ao invalidar prefixo ${prefix}:`, error);
     }
+  }
+
+  private getRedisClient(): Redis | null {
+    const store = (this.cacheManager as unknown as { store?: CacheStore })
+      .store;
+    if (!store) return null;
+
+    // Para cache-manager com múltiplas stores
+    if (store.stores && Array.isArray(store.stores)) {
+      for (const s of store.stores) {
+        const client = s?.opts?.store?.client || s?.client;
+        if (client) return client;
+      }
+    }
+
+    // Para redis-store direto
+    return store.client || store.opts?.client || null;
   }
 
   async clear(): Promise<void> {

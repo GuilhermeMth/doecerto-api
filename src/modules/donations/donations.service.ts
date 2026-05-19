@@ -7,7 +7,13 @@ import { CreateDonationDto, DonationType } from './dto/create-donation.dto';
 import { DonationStatus, UpdateDonationDto } from './dto/update-donation.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'generated/prisma';
+import { WhatsappMessageService } from 'src/common/services/whatsapp-message.service';
 import { CacheService } from 'src/cache/cache.service';
+
+export interface CreateDonationResult {
+  donation: unknown;
+  whatsappLink?: string | null;
+}
 
 @Injectable()
 export class DonationsService {
@@ -28,8 +34,8 @@ export class DonationsService {
         userId: true,
         cnpj: true,
         verificationStatus: true,
-        user: { select: { id: true, name: true, email: true } }
-      }
+        user: { select: { id: true, name: true, email: true } },
+      },
     },
     donor: {
       select: {
@@ -38,19 +44,28 @@ export class DonationsService {
         user: { select: { id: true, name: true, email: true } },
         profile: {
           select: {
-            contactNumber: true
-          }
-        }
-      }
-    }
+            contactNumber: true,
+          },
+        },
+      },
+    },
   } as const;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
+    private readonly whatsappMessageService: WhatsappMessageService,
   ) {}
 
-  async create(createDonationDto: CreateDonationDto, donorId: number, proofOfPaymentUrl?: string) {
+  private invalidateCatalogCache(): void {
+    void this.cacheService.delByPrefix('catalog:');
+  }
+
+  async create(
+    createDonationDto: CreateDonationDto,
+    donorId: number,
+    proofOfPaymentUrl?: string,
+  ): Promise<CreateDonationResult> {
     const {
       ongId,
       materialDescription,
@@ -77,9 +92,36 @@ export class DonationsService {
       select: this.donationSelect,
     });
 
-    await this.cacheService.delByPrefix('catalog:');
+    this.invalidateCatalogCache();
 
-    return donation;
+    let whatsappLink: string | null = null;
+
+    // Se for doação material, tenta construir link do WhatsApp da ONG
+    if (donation.donationType === 'material') {
+      // Busca número de contato no perfil da ONG (se existir)
+      const ongProfile = await this.prisma.ongProfile.findUnique({
+        where: { ongId },
+        select: { contactNumber: true },
+      });
+
+      const phone = ongProfile?.contactNumber || null;
+
+      if (phone) {
+        const message = this.whatsappMessageService.generateDonationMessage(
+          donation.donor.user.name,
+          donation.id,
+          donation.materialDescription || 'item',
+          donation.materialQuantity || 1,
+        );
+
+        whatsappLink = this.whatsappMessageService.generateWhatsappLink(
+          phone,
+          message,
+        );
+      }
+    }
+
+    return { donation, whatsappLink };
   }
 
   async findAll(skip = 0, take = 20) {
@@ -91,12 +133,20 @@ export class DonationsService {
         select: this.donationSelect,
         skip: validSkip,
         take: validTake,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.donation.count()
+      this.prisma.donation.count(),
     ]);
 
-    return { data, pagination: { skip: validSkip, take: validTake, total, pages: Math.ceil(total / validTake) } };
+    return {
+      data,
+      pagination: {
+        skip: validSkip,
+        take: validTake,
+        total,
+        pages: Math.ceil(total / validTake),
+      },
+    };
   }
 
   async findOne(id: number) {
@@ -127,12 +177,20 @@ export class DonationsService {
         select: this.donationSelect,
         skip: validSkip,
         take: validTake,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.donation.count({ where })
+      this.prisma.donation.count({ where }),
     ]);
 
-    return { data, pagination: { skip: validSkip, take: validTake, total, pages: Math.ceil(total / validTake) } };
+    return {
+      data,
+      pagination: {
+        skip: validSkip,
+        take: validTake,
+        total,
+        pages: Math.ceil(total / validTake),
+      },
+    };
   }
 
   async findByOng(ongId: number, type?: DonationType, skip = 0, take = 20) {
@@ -150,12 +208,20 @@ export class DonationsService {
         select: this.donationSelect,
         skip: validSkip,
         take: validTake,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.donation.count({ where })
+      this.prisma.donation.count({ where }),
     ]);
 
-    return { data, pagination: { skip: validSkip, take: validTake, total, pages: Math.ceil(total / validTake) } };
+    return {
+      data,
+      pagination: {
+        skip: validSkip,
+        take: validTake,
+        total,
+        pages: Math.ceil(total / validTake),
+      },
+    };
   }
 
   async update(
@@ -185,7 +251,7 @@ export class DonationsService {
     const updateData: Prisma.DonationUpdateInput = {};
     const isCancelling = donationStatus === DonationStatus.canceled;
 
-// Handle cancellation or completion
+    // Handle cancellation or completion
     if (isCancelling) {
       this.validateCancellation(donation.donationStatus);
       updateData.donationStatus = DonationStatus.canceled;
@@ -194,7 +260,9 @@ export class DonationsService {
       updateData.donationStatus = DonationStatus.completed;
     } else if (donation.donationType === DonationType.monetary) {
       // Bloqueia apenas edições de dados em doações monetárias
-      throw new BadRequestException('Monetary donations can only be canceled or completed');
+      throw new BadRequestException(
+        'Monetary donations can only be canceled or completed',
+      );
     }
 
     const isDonor = donation.donorId === requesterId;
@@ -232,7 +300,7 @@ export class DonationsService {
       select: this.donationSelect,
     });
 
-    await this.cacheService.delByPrefix('catalog:');
+    this.invalidateCatalogCache();
 
     return updatedDonation;
   }
@@ -242,6 +310,109 @@ export class DonationsService {
       donationStatus: DonationStatus.canceled,
     };
     return this.update(id, cancelDto, requesterId);
+  }
+
+  async addProof(
+    donationId: number,
+    proofOfPaymentUrl: string,
+    requesterId: number,
+  ) {
+    const donation = await this.prisma.donation.findUnique({
+      where: { id: donationId },
+      select: { id: true, donorId: true, donationType: true },
+    });
+
+    if (!donation) {
+      throw new NotFoundException(`Donation with id ${donationId} not found`);
+    }
+
+    if (donation.donationType !== DonationType.monetary) {
+      throw new BadRequestException(
+        'Proof of payment can only be attached to monetary donations',
+      );
+    }
+
+    if (donation.donorId !== requesterId) {
+      throw new BadRequestException(
+        'You are not authorized to add proof to this donation',
+      );
+    }
+
+    const updated = await this.prisma.donation.update({
+      where: { id: donationId },
+      data: { proofOfPaymentUrl },
+      select: this.donationSelect,
+    });
+
+    this.invalidateCatalogCache();
+
+    return updated;
+  }
+
+  async generateWhatsappLink(
+    donationId: number,
+    requesterId: number,
+  ): Promise<{ whatsappLink: string }> {
+    const donation = await this.prisma.donation.findUnique({
+      where: { id: donationId },
+      select: {
+        id: true,
+        donorId: true,
+        donationType: true,
+        materialDescription: true,
+        materialQuantity: true,
+        donor: {
+          select: {
+            user: { select: { name: true } },
+          },
+        },
+        ong: {
+          select: {
+            profile: {
+              select: {
+                contactNumber: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!donation) {
+      throw new NotFoundException(`Donation with id ${donationId} not found`);
+    }
+
+    if (donation.donorId !== requesterId) {
+      throw new BadRequestException(
+        'You are not authorized to generate the WhatsApp link for this donation',
+      );
+    }
+
+    if (donation.donationType !== DonationType.material) {
+      throw new BadRequestException(
+        'WhatsApp link is only available for material donations',
+      );
+    }
+
+    const phone = donation.ong.profile?.contactNumber || null;
+
+    if (!phone) {
+      throw new NotFoundException('ONG contact number not found');
+    }
+
+    const message = this.whatsappMessageService.generateDonationMessage(
+      donation.donor.user.name,
+      donation.id,
+      donation.materialDescription || 'item',
+      donation.materialQuantity || 1,
+    );
+
+    const whatsappLink = this.whatsappMessageService.generateWhatsappLink(
+      phone,
+      message,
+    );
+
+    return { whatsappLink };
   }
 
   // Private helper methods

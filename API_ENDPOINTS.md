@@ -1107,6 +1107,31 @@ Obtém detalhes de uma doação específica.
 
 ---
 
+## GET `/donations/:id/whatsapp-link` 👤
+
+Gera novamente o link de WhatsApp para uma doação material existente.
+
+**Response (200 OK):**
+
+```json
+{
+  "whatsappLink": "https://api.whatsapp.com/send?phone=5511999999999&text=..."
+}
+```
+
+**Regras:**
+
+- A doação precisa ser do tipo `material`
+- O usuário autenticado precisa ser o dono da doação
+- A ONG precisa ter `contactNumber` cadastrado
+
+**Erros Possíveis:**
+
+- `400 Bad Request` - Doação não autorizada ou do tipo incorreto
+- `404 Not Found` - Doação ou telefone da ONG não encontrado
+
+---
+
 ## PATCH `/donations/:id` 🔒
 
 Atualiza uma doação.

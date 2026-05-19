@@ -24,10 +24,6 @@
     "paths": {
       "@prisma/client": ["generated/prisma"]
     }
-  }, 
-  "include": [
-    "src/**/*", 
-    "src/types/*.d.ts",
-    "generated/prisma/**/*"
-  ]
+  },
+  "include": ["src/**/*", "src/types/*.d.ts", "generated/prisma/**/*"]
 }
